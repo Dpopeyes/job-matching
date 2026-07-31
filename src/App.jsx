@@ -7,12 +7,13 @@ import RegisterPage from './components/RegisterPage';
 import ProfilePage from './components/ProfilePage';
 import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
-import { MOCK_USER, MOCK_JOBS, MOCK_APPLICATIONS } from './data/mockData';
-import { fetchJobs, loginUser, registerUser, submitApplication, fetchUserApplications } from './data/api';
+import { MOCK_JOBS, MOCK_APPLICATIONS } from './data/mockData';
+import { fetchJobs, loginUser, submitApplication, fetchUserApplications } from './data/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [currentUser, setCurrentUser] = useState(MOCK_USER);
+  // Default to null so user starts logged out (no automatic demo login)
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState(MOCK_JOBS);
   const [applications, setApplications] = useState(MOCK_APPLICATIONS);
@@ -49,7 +50,7 @@ export default function App() {
       jobTitle: job.title,
       company: job.company,
       userId: currentUser?.id || 'user-001',
-      coverNote: 'ยื่นผ่านระบบ Skill Portfolio'
+      coverNote: 'ยื่นผ่านระบบสมัครงาน'
     };
 
     await submitApplication(appData);
@@ -68,12 +69,7 @@ export default function App() {
 
   const handleLoginSuccess = async (user) => {
     if (user) {
-      if (user.email) {
-        const dbUser = await loginUser(user.email, 'password123');
-        setCurrentUser(dbUser?.user || user);
-      } else {
-        setCurrentUser(user);
-      }
+      setCurrentUser(user);
     }
     setActiveTab('home');
   };
