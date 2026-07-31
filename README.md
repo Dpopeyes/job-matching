@@ -43,17 +43,6 @@ npm run dev
 
 ---
 
-## 🔑 บัญชีสำหรับทดลองใช้งาน (Quick Test Accounts)
-
-ในหน้าเข้าสู่ระบบ สามารถกดปุ่ม **Quick Demo Login** เพื่อทดสอบสิทธิ์การใช้งานได้ทันที:
-
-- 🎓 **บัญชีผู้หางาน (Applicant)**: `pounzazakub@gmail.com`
-  - ทดสอบหางาน, กรองจังหวัด, ยื่นใบสมัครงาน และจัดการคลังทักษะ
-- 🏢 **บัญชีองค์กรนายจ้าง (Employer)**: `hr@siamtech.co.th`
-  - ทดสอบกดปุ่ม **"➕ โพสต์ประกาศรับสมัครงาน"** และดูโปรไฟล์องค์กรนายจ้าง
-
----
-
 ## 🛠️ เทคโนโลยีที่ใช้ในการพัฒนา (Tech Stack)
 
 - **Frontend**: React 18, Vite, Lucide React Icons, Pure CSS (Glassmorphism & Responsive Design)

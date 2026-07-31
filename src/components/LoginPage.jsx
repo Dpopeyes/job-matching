@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn, Sparkles, AlertCircle, ScanFace, Building, UserCheck } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, ScanFace } from 'lucide-react';
 import { loginUser, faceLoginUser } from '../data/api';
 
 export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
@@ -28,69 +28,15 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
     }
   };
 
-  const handleQuickDemoApplicant = async () => {
-    setIsLoading(true);
-    const demoUser = {
-      id: 'user-001',
-      name: 'นายชยธร ดอกกุหลาบ',
-      email: 'pounzazakub@gmail.com',
-      role: 'applicant',
-      university: 'มหาวิทยาลัยเทคโนโลยีสุรนารี',
-      major: 'สาขาวิทยาการคอมพิวเตอร์',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-      bio: 'ผู้จบใหม่ไฟแรง มีทักษะด้าน Web Development & AI Programming',
-      skills: [
-        { id: 'sk-1', name: 'React.js', level: 'Advanced' },
-        { id: 'sk-2', name: 'Node.js & Express', level: 'Intermediate' },
-        { id: 'sk-3', name: 'SQLite / SQL', level: 'Intermediate' },
-        { id: 'sk-4', name: 'TailwindCSS / CSS3', level: 'Advanced' }
-      ],
-      projects: [
-        {
-          id: 'proj-1',
-          title: 'Skill-Based Job Matching System',
-          description: 'แพลตฟอร์มจับคู่ตำแหน่งงานจากคลังทักษะและผลงานสำหรับผู้จบใหม่',
-          tags: ['React', 'Node.js', 'SQLite'],
-          demoUrl: '#',
-          githubUrl: '#',
-          image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&auto=format&fit=crop&q=80'
-        }
-      ]
-    };
-    onLoginSuccess(demoUser);
-    setIsLoading(false);
-  };
-
-  const handleQuickDemoEmployer = async () => {
-    setIsLoading(true);
-    const demoEmployer = {
-      id: 'emp-001',
-      name: 'บริษัท สยามเทคโนโลยี ดีเวลลอปเม้นท์ จำกัด',
-      companyName: 'บริษัท สยามเทคโนโลยี ดีเวลลอปเม้นท์ จำกัด',
-      contactName: 'คุณสมชาย ใจดี (HR Manager)',
-      email: 'hr@siamtech.co.th',
-      phone: '02-999-8888',
-      role: 'employer',
-      university: 'กรุงเทพมหานคร',
-      major: 'เทคโนโลยีสารสนเทศ & ซอฟต์แวร์',
-      avatar: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=300&auto=format&fit=crop&q=80',
-      bio: 'องค์กรชั้นนำด้านนวัตกรรมและเทคโนโลยี เปิดรับคนรุ่นใหม่ร่วมสร้างสรรค์ผลงานระดับสากล'
-    };
-    onLoginSuccess(demoEmployer);
-    setIsLoading(false);
-  };
-
   const handleFaceKYCLogin = async () => {
     setIsFaceKYCing(true);
-    setTimeout(async () => {
-      const result = await faceLoginUser();
-      setIsFaceKYCing(false);
-      if (result && result.success) {
-        onLoginSuccess(result.user);
-      } else {
-        handleQuickDemoApplicant();
-      }
-    }, 1200);
+    const result = await faceLoginUser();
+    setIsFaceKYCing(false);
+    if (result && result.success) {
+      onLoginSuccess(result.user);
+    } else {
+      setErrorMessage(result?.error || 'ไม่สามารถยืนยันตัวตนด้วยสแกนใบหน้าได้');
+    }
   };
 
   return (
@@ -118,32 +64,6 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           </p>
         </div>
 
-        {/* Quick Demo Login Bar */}
-        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '8px', textAlign: 'center' }}>
-            ⚡ เลือกบัญชีเพื่อทดสอบระบบได้ทันที:
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={handleQuickDemoApplicant}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '8px 10px', borderRadius: '10px' }}
-            >
-              <UserCheck style={{ width: '14px', height: '14px', color: '#2563eb' }} /> บัญชีผู้หางาน
-            </button>
-
-            <button
-              type="button"
-              onClick={handleQuickDemoEmployer}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '8px 10px', borderRadius: '10px' }}
-            >
-              <Building style={{ width: '14px', height: '14px', color: '#0d9488' }} /> บัญชีนายจ้าง
-            </button>
-          </div>
-        </div>
-
         {/* Error Alert Box */}
         {errorMessage && (
           <div 
@@ -166,7 +86,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
           </div>
         )}
 
-        {/* Real Form */}
+        {/* Real Authentication Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
           <div>
@@ -179,6 +99,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
               className="input-field"
+              required
             />
           </div>
 
@@ -192,6 +113,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="input-field"
+              required
             />
           </div>
 
