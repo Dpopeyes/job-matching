@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, User, LogIn, UserPlus, FileCheck, ScanFace } from 'lucide-react';
+import { Briefcase, User, LogIn, UserPlus, FileCheck, Users } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, currentUser, setCurrentUser }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -8,6 +8,8 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
     setActiveTab(tab);
     setMobileMenuOpen(false);
   };
+
+  const isEmployer = currentUser?.role === 'employer';
 
   return (
     <nav className="navbar-fixed">
@@ -47,8 +49,11 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                 onClick={() => handleNavClick('applications')}
                 className={`nav-btn ${activeTab === 'applications' ? 'active' : ''}`}
               >
-                <FileCheck style={{ width: '16px', height: '16px' }} />
-                สถานะการสมัคร
+                {isEmployer ? (
+                  <><Users style={{ width: '16px', height: '16px', color: '#0d9488' }} /> รายชื่อผู้สมัครงานที่ยื่นเข้ามา</>
+                ) : (
+                  <><FileCheck style={{ width: '16px', height: '16px' }} /> สถานะการสมัครงาน</>
+                )}
               </button>
             )}
 
@@ -57,7 +62,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
               className={`nav-btn ${activeTab === 'profile' ? 'active' : ''}`}
             >
               <User style={{ width: '16px', height: '16px' }} />
-              {currentUser?.role === 'employer' ? 'โปรไฟล์องค์กรนายจ้าง' : 'โปรไฟล์ & ผลงาน'}
+              {isEmployer ? 'โปรไฟล์องค์กรนายจ้าง' : 'โปรไฟล์ & ผลงาน'}
             </button>
           </div>
 
@@ -83,8 +88,8 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                 />
                 <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
                   <div style={{ fontWeight: '700', fontSize: '0.8rem', color: '#0f172a' }}>{currentUser.companyName || currentUser.name}</div>
-                  <span style={{ fontSize: '0.65rem', color: currentUser.role === 'employer' ? '#0d9488' : '#2563eb', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {currentUser.role === 'employer' ? '🏢 บัญชีองค์กรนายจ้าง' : '🎓 ผู้สมัครงาน'}
+                  <span style={{ fontSize: '0.65rem', color: isEmployer ? '#0d9488' : '#2563eb', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {isEmployer ? '🏢 บัญชีองค์กรนายจ้าง' : '🎓 ผู้สมัครงาน'}
                   </span>
                 </div>
                 <button 

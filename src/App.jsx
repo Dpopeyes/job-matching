@@ -13,7 +13,7 @@ import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplicatio
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
-  // 1. User Session Persistence via localStorage (ไม่ต้องออกจากระบบเมื่อรีเฟรช)
+  // 1. User Session Persistence via localStorage
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('app_current_user');
@@ -58,7 +58,6 @@ export default function App() {
     const dbJobs = await fetchJobs();
     if (dbJobs && dbJobs.length > 0) {
       setJobs(prevJobs => {
-        // Merge DB jobs with any local newly posted jobs
         const existingIds = new Set(dbJobs.map(j => j.id));
         const localCustomJobs = prevJobs.filter(j => !existingIds.has(j.id));
         const merged = [...localCustomJobs, ...dbJobs];
@@ -208,6 +207,7 @@ export default function App() {
         {activeTab === 'applications' && (
           <ApplicationsPage 
             applications={applications} 
+            currentUser={currentUser}
             onNavigateHome={() => setActiveTab('home')}
           />
         )}
