@@ -13,7 +13,7 @@ import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplicatio
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
-  // 1. User Session Persistence via localStorage
+  // 1. User Session Persistence ( per browser )
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('app_current_user');
@@ -25,19 +25,11 @@ export default function App() {
 
   const [selectedJob, setSelectedJob] = useState(null);
 
-  // 2. Jobs Persistence via localStorage + SQLite DB
-  const [jobs, setJobs] = useState(() => {
-    try {
-      const savedJobs = localStorage.getItem('app_jobs_data');
-      return savedJobs ? JSON.parse(savedJobs) : MOCK_JOBS;
-    } catch (e) {
-      return MOCK_JOBS;
-    }
-  });
-
+  // 2. Jobs state synced with SQLite Shared DB
+  const [jobs, setJobs] = useState(MOCK_JOBS);
   const [applications, setApplications] = useState(MOCK_APPLICATIONS);
 
-  // Sync Current User with localStorage
+  // Sync Current User session with localStorage
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('app_current_user', JSON.stringify(currentUser));
@@ -46,24 +38,11 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Sync Jobs with localStorage
-  useEffect(() => {
-    if (jobs && jobs.length > 0) {
-      localStorage.setItem('app_jobs_data', JSON.stringify(jobs));
-    }
-  }, [jobs]);
-
-  // Load latest jobs from SQLite DB Server
+  // Load Latest Shared Jobs from SQLite DB Server (Runs on mount & refresh)
   const loadJobsData = async () => {
     const dbJobs = await fetchJobs();
     if (dbJobs && dbJobs.length > 0) {
-      setJobs(prevJobs => {
-        const existingIds = new Set(dbJobs.map(j => j.id));
-        const localCustomJobs = prevJobs.filter(j => !existingIds.has(j.id));
-        const merged = [...localCustomJobs, ...dbJobs];
-        localStorage.setItem('app_jobs_data', JSON.stringify(merged));
-        return merged;
-      });
+      setJobs(dbJobs);
     }
   };
 
@@ -78,25 +57,26 @@ export default function App() {
       }
     }
     loadData();
+
+    // Auto Poll Shared DB Every 5 Seconds so all browsers see new posts live automatically!
+    const interval = setInterval(() => {
+      loadJobsData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [currentUser?.id]);
 
-  // Add new job posted by Employer instantly for everyone
+  // Add new job posted by Employer instantly
   const handleAddNewJob = (newJob) => {
-    setJobs(prevJobs => {
-      const updated = [newJob, ...prevJobs.filter(j => j.id !== newJob.id)];
-      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
-      return updated;
-    });
+    setJobs(prevJobs => [newJob, ...prevJobs.filter(j => j.id !== newJob.id)]);
+    loadJobsData();
   };
 
   // Delete job for Employer
   const handleDeleteJob = async (jobId) => {
     await deleteJob(jobId);
-    setJobs(prevJobs => {
-      const updated = prevJobs.filter(j => j.id !== jobId);
-      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
-      return updated;
-    });
+    setJobs(prevJobs => prevJobs.filter(j => j.id !== jobId));
+    loadJobsData();
   };
 
   const handleJobSelect = (job) => {
