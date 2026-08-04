@@ -4,7 +4,7 @@ import { MOCK_JOBS } from '../data/mockData';
 import { THAI_PROVINCES } from '../data/provinces';
 import PostJobModal from './PostJobModal';
 
-export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, onRefreshJobs }) {
+export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, onRefreshJobs, onAddNewJob }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
@@ -20,6 +20,16 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
     { id: 'design', label: '🎨 ออกแบบ & กราฟิก' },
     { id: 'intern', label: '🎓 ฝึกงาน & พาร์ทไทม์' },
   ];
+
+  // Handle instant job post addition for everyone
+  const handleJobPostedSuccess = (newJob) => {
+    if (onAddNewJob) {
+      onAddNewJob(newJob);
+    }
+    if (onRefreshJobs) {
+      onRefreshJobs();
+    }
+  };
 
   // Multi-category filtering logic
   const filteredJobs = jobs.filter((job) => {
@@ -228,9 +238,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
       {showPostJobModal && (
         <PostJobModal
           onClose={() => setShowPostJobModal(false)}
-          onJobPosted={() => {
-            if (onRefreshJobs) onRefreshJobs();
-          }}
+          onJobPosted={handleJobPostedSuccess}
         />
       )}
 

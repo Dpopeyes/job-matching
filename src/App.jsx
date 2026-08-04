@@ -12,7 +12,6 @@ import { fetchJobs, loginUser, submitApplication, fetchUserApplications } from '
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  // Default to null so user starts logged out (no automatic demo login)
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobs, setJobs] = useState(MOCK_JOBS);
@@ -21,7 +20,12 @@ export default function App() {
   const loadJobsData = async () => {
     const dbJobs = await fetchJobs();
     if (dbJobs && dbJobs.length > 0) {
-      setJobs(dbJobs);
+      // Merge DB jobs with any newly posted jobs ensuring no duplicates
+      setJobs(prevJobs => {
+        const existingIds = new Set(dbJobs.map(j => j.id));
+        const customPosted = prevJobs.filter(j => !existingIds.has(j.id));
+        return [...customPosted, ...dbJobs];
+      });
     }
   };
 
@@ -37,6 +41,10 @@ export default function App() {
     }
     loadData();
   }, [currentUser?.id]);
+
+  const handleAddNewJob = (newJob) => {
+    setJobs(prevJobs => [newJob, ...prevJobs]);
+  };
 
   const handleJobSelect = (job) => {
     setSelectedJob(job);
@@ -101,6 +109,7 @@ export default function App() {
             currentUser={currentUser} 
             onNavigateToProfile={() => setActiveTab('profile')}
             onRefreshJobs={loadJobsData}
+            onAddNewJob={handleAddNewJob}
           />
         )}
 
