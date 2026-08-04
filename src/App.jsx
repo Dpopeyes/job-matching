@@ -7,13 +7,12 @@ import RegisterPage from './components/RegisterPage';
 import ProfilePage from './components/ProfilePage';
 import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
-import { MOCK_JOBS, MOCK_APPLICATIONS } from './data/mockData';
 import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications } from './data/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
-  // 1. User Session Persistence ( per browser )
+  // 1. User Session Persistence (per browser)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('app_current_user');
@@ -25,9 +24,18 @@ export default function App() {
 
   const [selectedJob, setSelectedJob] = useState(null);
 
-  // 2. Jobs state synced with SQLite Shared DB
-  const [jobs, setJobs] = useState(MOCK_JOBS);
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
+  // 2. Real Jobs state synced ONLY with SQLite Shared DB and localStorage (NO MOCK DATA)
+  const [jobs, setJobs] = useState(() => {
+    try {
+      const savedJobs = localStorage.getItem('app_jobs_data');
+      return savedJobs ? JSON.parse(savedJobs) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // 3. Real Applications state synced ONLY with SQLite Shared DB (NO MOCK DATA)
+  const [applications, setApplications] = useState([]);
 
   // Sync Current User session with localStorage
   useEffect(() => {
@@ -38,11 +46,19 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Load Latest Shared Jobs from SQLite DB Server (Runs on mount & refresh)
+  // Sync Jobs with localStorage
+  useEffect(() => {
+    if (jobs) {
+      localStorage.setItem('app_jobs_data', JSON.stringify(jobs));
+    }
+  }, [jobs]);
+
+  // Load Latest Shared Jobs from SQLite DB Server
   const loadJobsData = async () => {
     const dbJobs = await fetchJobs();
-    if (dbJobs && dbJobs.length > 0) {
+    if (dbJobs) {
       setJobs(dbJobs);
+      localStorage.setItem('app_jobs_data', JSON.stringify(dbJobs));
     }
   };
 
@@ -51,31 +67,39 @@ export default function App() {
       await loadJobsData();
       if (currentUser?.id) {
         const dbApps = await fetchUserApplications(currentUser.id);
-        if (dbApps && dbApps.length > 0) {
+        if (dbApps) {
           setApplications(dbApps);
         }
       }
     }
     loadData();
 
-    // Auto Poll Shared DB Every 5 Seconds so all browsers see new posts live automatically!
+    // Auto Poll Shared DB Every 3 Seconds for 100% Real-Time updates across all devices
     const interval = setInterval(() => {
       loadJobsData();
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [currentUser?.id]);
 
   // Add new job posted by Employer instantly
   const handleAddNewJob = (newJob) => {
-    setJobs(prevJobs => [newJob, ...prevJobs.filter(j => j.id !== newJob.id)]);
+    setJobs(prevJobs => {
+      const updated = [newJob, ...prevJobs.filter(j => j.id !== newJob.id)];
+      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
+      return updated;
+    });
     loadJobsData();
   };
 
   // Delete job for Employer
   const handleDeleteJob = async (jobId) => {
     await deleteJob(jobId);
-    setJobs(prevJobs => prevJobs.filter(j => j.id !== jobId));
+    setJobs(prevJobs => {
+      const updated = prevJobs.filter(j => j.id !== jobId);
+      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
+      return updated;
+    });
     loadJobsData();
   };
 
@@ -91,6 +115,7 @@ export default function App() {
       jobTitle: job.title,
       company: job.company,
       userId: currentUser?.id || 'user-001',
+      applicantName: currentUser?.name || 'ผู้สมัครงาน',
       coverNote: 'ยื่นผ่านระบบสมัครงาน'
     };
 
@@ -100,12 +125,12 @@ export default function App() {
       id: `app-${Date.now()}`,
       jobTitle: job.title,
       company: job.company,
+      applicantName: currentUser?.name || 'ผู้สมัครงาน',
       applyDate: new Date().toISOString().split('T')[0],
       status: 'กำลังพิจารณา (Under Review)',
-      statusColor: 'badge-accent',
-      notes: 'ส่งข้อมูลผู้สมัครให้นายจ้างเรียบร้อย'
+      statusColor: 'badge-accent'
     };
-    setApplications([newApp, ...applications]);
+    setApplications(prev => [newApp, ...prev]);
   };
 
   const handleLoginSuccess = async (user) => {

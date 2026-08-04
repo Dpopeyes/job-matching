@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2 } from 'lucide-react';
-import { MOCK_JOBS } from '../data/mockData';
+import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
 import PostJobModal from './PostJobModal';
 
-export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob }) {
+export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
@@ -23,12 +22,10 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
 
   // Handle instant job post addition for everyone
   const handleJobPostedSuccess = (newJob) => {
-    // 1. Reset filter to 'all' so the new job is guaranteed to be visible at the top!
     setSelectedCategory('all');
     setSearchTerm('');
     setSelectedProvince('ทุกสถานที่ (ทั่วประเทศไทย)');
 
-    // 2. Add job to state immediately
     if (onAddNewJob) {
       onAddNewJob(newJob);
     }
@@ -47,7 +44,9 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
   };
 
   // Multi-category filtering logic (Visible to EVERYONE)
-  const filteredJobs = jobs.filter((job) => {
+  const filteredJobs = (jobs || []).filter((job) => {
+    if (!job || !job.title) return false;
+
     // 1. Search filter
     const matchesSearch = 
       !searchTerm ||
@@ -178,102 +177,112 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
         </div>
       </section>
 
-      {/* Clean Job Cards Grid */}
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
-        {filteredJobs.map((job) => (
-          <div 
-            key={job.id} 
-            className="clean-card"
-            style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
-            onClick={() => onSelectJob(job)}
-          >
-            <div>
-              {/* Header Info */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img 
-                    src={job.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60'} 
-                    alt={job.company} 
-                    style={{ width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
-                  />
-                  <div>
-                    <h3 style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
-                      {job.title}
-                    </h3>
-                    <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
-                      <Building style={{ width: '13px', height: '13px', color: '#2563eb' }} /> {job.company}
-                    </p>
+      {/* Clean Job Cards Grid or Empty State */}
+      {filteredJobs.length === 0 ? (
+        <div className="clean-card" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+          <Briefcase style={{ width: '48px', height: '48px', color: '#cbd5e1', margin: '0 auto 12px' }} />
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>ยังไม่มีประกาศตำแหน่งงานในขณะนี้</h3>
+          <p style={{ fontSize: '0.85rem', margin: 0 }}>
+            {currentUser?.role === 'employer' ? 'คุณสามารถกดปุ่ม "➕ โพสต์ประกาศรับสมัครงาน" เพื่อเริ่มลงประกาศงานใหม่ได้ทันที' : 'เมื่อองค์กรนายจ้างลงประกาศรับสมัครงานใหม่ ตำแหน่งงานจะแสดงที่นี่ทันที'}
+          </p>
+        </div>
+      ) : (
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
+          {filteredJobs.map((job) => (
+            <div 
+              key={job.id} 
+              className="clean-card"
+              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
+              onClick={() => onSelectJob(job)}
+            >
+              <div>
+                {/* Header Info */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img 
+                      src={job.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60'} 
+                      alt={job.company} 
+                      style={{ width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                    />
+                    <div>
+                      <h3 style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
+                        {job.title}
+                      </h3>
+                      <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
+                        <Building style={{ width: '13px', height: '13px', color: '#2563eb' }} /> {job.company}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                      Match {job.matchRate || 95}%
+                    </span>
+
+                    {/* Delete Job Button for Employer */}
+                    {currentUser && currentUser.role === 'employer' && (
+                      <button
+                        onClick={(e) => handleDeleteJobClick(e, job.id)}
+                        title="ปิดรับสมัคร / ลบประกาศงาน"
+                        style={{
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#ef4444',
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '0.7rem',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <Trash2 style={{ width: '12px', height: '12px' }} /> ลบงาน
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                    Match {job.matchRate || 95}%
+                {/* Badges Info */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                  <span className="badge badge-primary">{job.type || 'งานเต็มเวลา'}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: '600', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
+                    📍 {job.location || 'กรุงเทพมหานคร'}
                   </span>
-
-                  {/* Delete Job Button for Employer */}
-                  {currentUser && currentUser.role === 'employer' && (
-                    <button
-                      onClick={(e) => handleDeleteJobClick(e, job.id)}
-                      title="ปิดรับสมัคร / ลบประกาศงาน"
-                      style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        color: '#ef4444',
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px'
-                      }}
-                    >
-                      <Trash2 style={{ width: '12px', height: '12px' }} /> ลบงาน
-                    </button>
-                  )}
+                  <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px' }}>
+                    💰 {job.salary || 'ตามตกลง'}
+                  </span>
                 </div>
+
+                {/* Short Description */}
+                <p style={{ fontSize: '0.825rem', color: '#475569', lineHeight: 1.5, marginBottom: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {job.description}
+                </p>
+
+                {/* Skills required */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {job.skillsRequired && job.skillsRequired.map((skill, idx) => (
+                    <span key={idx} className="badge badge-skill" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                      {typeof skill === 'string' ? skill : skill.name}
+                    </span>
+                  ))}
+                </div>
+
               </div>
 
-              {/* Badges Info */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                <span className="badge badge-primary">{job.type || 'งานเต็มเวลา'}</span>
-                <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: '600', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
-                  📍 {job.location || 'กรุงเทพมหานคร'}
+              {/* Bottom Card Link */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', marginTop: '14px', borderTop: '1px solid #f1f5f9', fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>
+                <span>{job.postedDate || 'วันนี้'}</span>
+                <span style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '700' }}>
+                  ดูรายละเอียด <ChevronRight style={{ width: '14px', height: '14px' }} />
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px' }}>
-                  💰 {job.salary || 'ตามตกลง'}
-                </span>
-              </div>
-
-              {/* Short Description */}
-              <p style={{ fontSize: '0.825rem', color: '#475569', lineHeight: 1.5, marginBottom: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {job.description}
-              </p>
-
-              {/* Skills required */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {job.skillsRequired && job.skillsRequired.map((skill, idx) => (
-                  <span key={idx} className="badge badge-skill" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                    {typeof skill === 'string' ? skill : skill.name}
-                  </span>
-                ))}
               </div>
 
             </div>
-
-            {/* Bottom Card Link */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', marginTop: '14px', borderTop: '1px solid #f1f5f9', fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>
-              <span>{job.postedDate || 'วันนี้'}</span>
-              <span style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '700' }}>
-                ดูรายละเอียด <ChevronRight style={{ width: '14px', height: '14px' }} />
-              </span>
-            </div>
-
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
 
       {/* Post Job Modal Popup */}
       {showPostJobModal && (

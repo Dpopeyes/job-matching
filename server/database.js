@@ -87,47 +87,6 @@ export function initDatabase() {
       status TEXT DEFAULT 'กำลังพิจารณา (Under Review)'
     )
   `);
-
-  // Seed Initial Jobs only if table is completely empty
-  const jobCount = db.prepare('SELECT count(*) as count FROM jobs').get().count;
-  if (jobCount === 0) {
-    const insertJob = db.prepare(`
-      INSERT INTO jobs (id, title, company, logo, location, category, type, salary, experienceLevel, matchRate, postedDate, skillsRequired, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    insertJob.run(
-      'job-101', 'Frontend Developer (React)', 'สยามนวัตกรรม เทค จำกัด',
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60',
-      'กรุงเทพมหานคร', 'dev', 'งานเต็มเวลา (Entry-level)', '25,000 - 35,000 บาท/เดือน', 'เด็กจบใหม่ยินดีรับ', 98, 'วันนี้',
-      JSON.stringify(['React', 'TypeScript', 'CSS/Tailwind', 'Git']),
-      'พัฒนาเว็บแอปพลิเคชันยุคใหม่ด้วย React และ TypeScript ทำงานร่วมกับทีม UX/UI'
-    );
-
-    insertJob.run(
-      'job-102', 'เจ้าหน้าที่การตลาดดิจิทัล (Digital Marketing)', 'เอเชีย บิสซิเนส กรุ๊ป',
-      'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=100&auto=format&fit=crop&q=60',
-      'ชลบุรี', 'marketing', 'งานเต็มเวลา', '22,000 - 28,000 บาท/เดือน', 'ประสบการณ์ 0-1 ปี', 92, '1 วันที่แล้ว',
-      JSON.stringify(['Digital Marketing', 'Facebook Ads', 'Content Creation', 'SEO']),
-      'วางแผนและบริหารจัดการแคมเปญการตลาดออนไลน์ สร้างคอนเทนต์ดึงดูดกลุ่มเป้าหมาย'
-    );
-
-    insertJob.run(
-      'job-103', 'เจ้าหน้าที่บัญชีและการเงิน (Junior Accountant)', 'ไทยไฟแนนซ์ โฮลดิ้ง',
-      'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=100&auto=format&fit=crop&q=60',
-      'นนทบุรี', 'finance', 'งานเต็มเวลา (Entry-level)', '20,000 - 25,000 บาท/เดือน', 'เด็กจบใหม่ยินดีรับ', 90, '2 วันที่แล้ว',
-      JSON.stringify(['บัญชีการเงิน', 'MS Excel', 'Tax Planning', 'Express Accounting']),
-      'จัดทำบัญชีรายรับ-รายจ่าย ตรวจสอบเอกสารทางการเงิน และเตรียมรายงานภาษีประจำเดือน'
-    );
-
-    insertJob.run(
-      'job-104', 'วิศวกรโยธา / ผู้ช่วยวิศวกรโครงการ', 'บิลเดอร์ เอ็นจิเนียริ่ง จำกัด',
-      'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=100&auto=format&fit=crop&q=60',
-      'เชียงใหม่', 'engineering', 'งานเต็มเวลา', '24,000 - 32,000 บาท/เดือน', 'เด็กจบใหม่ยินดีรับ', 94, '3 วันที่แล้ว',
-      JSON.stringify(['AutoCAD', 'Structural Analysis', 'Project Management', 'การคุมงานก่อสร้าง']),
-      'ควบคุมงานก่อสร้างให้เป็นไปตามแบบแปลน ตรวจสอบคุณภาพงานและความปลอดภัยหน้างาน'
-    );
-  }
 }
 
 export default db;
