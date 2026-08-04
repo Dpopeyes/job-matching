@@ -125,99 +125,20 @@ app.post('/api/auth/face-login', (req, res) => {
   }
 });
 
-// Update Profile Bio & Info
-app.put('/api/users/:id', (req, res) => {
-  try {
-    const { name, bio, university, major, phone } = req.body;
-    db.prepare(`
-      UPDATE users SET name = ?, bio = ?, university = ?, major = ?, phone = ? WHERE id = ?
-    `).run(name, bio, university, major, phone, req.params.id);
-
-    const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
-    const skills = db.prepare('SELECT * FROM skills WHERE userId = ?').all(req.params.id);
-    const projects = db.prepare('SELECT * FROM projects WHERE userId = ?').all(req.params.id).map(p => ({
-      ...p,
-      tags: JSON.parse(p.tags || '[]')
-    }));
-
-    res.json({ success: true, user: { ...updatedUser, skills, projects } });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ----------------------------------------------------
-// SKILLS & PROJECTS APIs
-// ----------------------------------------------------
-
-// Add Skill to User
-app.post('/api/skills', (req, res) => {
-  try {
-    const { userId, name, level } = req.body;
-    const id = `sk-${Date.now()}`;
-    db.prepare('INSERT INTO skills (id, userId, name, level) VALUES (?, ?, ?, ?)').run(id, userId, name, level || 'Intermediate');
-    const skills = db.prepare('SELECT * FROM skills WHERE userId = ?').all(userId);
-    res.status(201).json({ success: true, skills });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Delete Skill
-app.delete('/api/skills/:id', (req, res) => {
-  try {
-    const skill = db.prepare('SELECT userId FROM skills WHERE id = ?').get(req.params.id);
-    if (skill) {
-      db.prepare('DELETE FROM skills WHERE id = ?').run(req.params.id);
-      const remainingSkills = db.prepare('SELECT * FROM skills WHERE userId = ?').all(skill.userId);
-      return res.json({ success: true, skills: remainingSkills });
-    }
-    res.status(404).json({ error: 'ไม่พบทักษะที่ต้องการลบ' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Add Project to User
-app.post('/api/projects', (req, res) => {
-  try {
-    const { userId, title, description, tags, demoUrl, githubUrl, image } = req.body;
-    const id = `proj-${Date.now()}`;
-    db.prepare(`
-      INSERT INTO projects (id, userId, title, description, tags, demoUrl, githubUrl, image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id, userId, title, description,
-      JSON.stringify(tags || ['React', 'Project']),
-      demoUrl || '#', githubUrl || '#',
-      image || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&auto=format&fit=crop&q=80'
-    );
-
-    const projects = db.prepare('SELECT * FROM projects WHERE userId = ?').all(userId).map(p => ({
-      ...p,
-      tags: JSON.parse(p.tags || '[]')
-    }));
-
-    res.status(201).json({ success: true, projects });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ----------------------------------------------------
 // JOBS & APPLICATIONS APIs
 // ----------------------------------------------------
 
-// GET All Jobs
+// GET All Jobs from SQLite DB
 app.get('/api/jobs', (req, res) => {
   try {
     const jobs = db.prepare('SELECT * FROM jobs ORDER BY id DESC').all();
     const formattedJobs = jobs.map(job => ({
       ...job,
-      skillsRequired: JSON.parse(job.skillsRequired || '[]'),
-      responsibilities: JSON.parse(job.responsibilities || '[]'),
-      qualifications: JSON.parse(job.qualifications || '[]'),
-      benefits: JSON.parse(job.benefits || '[]')
+      skillsRequired: typeof job.skillsRequired === 'string' ? JSON.parse(job.skillsRequired || '[]') : (job.skillsRequired || []),
+      responsibilities: typeof job.responsibilities === 'string' ? JSON.parse(job.responsibilities || '[]') : (job.responsibilities || []),
+      qualifications: typeof job.qualifications === 'string' ? JSON.parse(job.qualifications || '[]') : (job.qualifications || []),
+      benefits: typeof job.benefits === 'string' ? JSON.parse(job.benefits || '[]') : (job.benefits || [])
     }));
     res.json(formattedJobs);
   } catch (err) {
@@ -225,26 +146,49 @@ app.get('/api/jobs', (req, res) => {
   }
 });
 
-// POST New Job
+// POST New Job into SQLite DB
 app.post('/api/jobs', (req, res) => {
   try {
-    const { title, company, logo, location, category, type, salary, experienceLevel, skillsRequired, description } = req.body;
+    const { title, company, logo, location, category, type, salary, experienceLevel, skillsRequired, qualifications, description } = req.body;
     const id = `job-${Date.now()}`;
     const postedDate = 'วันนี้';
     const matchRate = 95;
 
     db.prepare(`
-      INSERT INTO jobs (id, title, company, logo, location, category, type, salary, experienceLevel, matchRate, postedDate, skillsRequired, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (id, title, company, logo, location, category, type, salary, experienceLevel, matchRate, postedDate, skillsRequired, qualifications, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, title, company,
-      logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60',
+      logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
       location || 'กรุงเทพมหานคร', category || 'all', type || 'งานเต็มเวลา (Entry-level)',
       salary || '20,000 - 30,000 บาท/เดือน', experienceLevel || 'เด็กจบใหม่ยินดีรับ', matchRate, postedDate,
-      JSON.stringify(skillsRequired || ['การสื่อสาร']), description || 'รายละเอียดตำแหน่งงาน'
+      JSON.stringify(skillsRequired || ['การสื่อสาร']),
+      JSON.stringify(qualifications || ['ปริญญาตรีทุกสาขา']),
+      description || 'รายละเอียดตำแหน่งงาน'
     );
 
-    res.status(201).json({ success: true, id, message: 'บันทึกงานใหม่สำเร็จ' });
+    const savedJob = {
+      id, title, company,
+      logo: logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
+      location: location || 'กรุงเทพมหานคร', category: category || 'all', type: type || 'งานเต็มเวลา (Entry-level)',
+      salary: salary || '20,000 - 30,000 บาท/เดือน', experienceLevel: experienceLevel || 'เด็กจบใหม่ยินดีรับ', matchRate, postedDate,
+      skillsRequired: Array.isArray(skillsRequired) ? skillsRequired : ['การสื่อสาร'],
+      qualifications: Array.isArray(qualifications) ? qualifications : ['ปริญญาตรีทุกสาขา'],
+      description: description || 'รายละเอียดตำแหน่งงาน'
+    };
+
+    res.status(201).json({ success: true, job: savedJob, message: 'บันทึกตำแหน่งงานใหม่ลงฐานข้อมูลเรียบร้อย' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE Job from SQLite DB (เมื่อหาคนครบแล้วหรือปิดรับสมัคร)
+app.delete('/api/jobs/:id', (req, res) => {
+  try {
+    const jobId = req.params.id;
+    db.prepare('DELETE FROM jobs WHERE id = ?').run(jobId);
+    res.json({ success: true, message: 'ลบประกาศตำแหน่งงานเรียบร้อยแล้ว' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -273,23 +217,6 @@ app.get('/api/applications/user/:userId', (req, res) => {
   try {
     const apps = db.prepare('SELECT * FROM applications WHERE userId = ? ORDER BY applyDate DESC').all(req.params.userId);
     res.json(apps);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ----------------------------------------------------
-// ADMIN DB VIEWER APIs
-// ----------------------------------------------------
-app.get('/api/admin/tables/:tableName', (req, res) => {
-  try {
-    const allowedTables = ['users', 'jobs', 'skills', 'projects', 'applications'];
-    const tableName = req.params.tableName;
-    if (!allowedTables.includes(tableName)) {
-      return res.status(400).json({ error: 'ตารางไม่ถูกต้อง' });
-    }
-    const rows = db.prepare(`SELECT * FROM ${tableName}`).all();
-    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

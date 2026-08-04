@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus } from 'lucide-react';
+import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2 } from 'lucide-react';
 import { MOCK_JOBS } from '../data/mockData';
 import { THAI_PROVINCES } from '../data/provinces';
 import PostJobModal from './PostJobModal';
 
-export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, onRefreshJobs, onAddNewJob }) {
+export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
@@ -31,7 +31,16 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
     }
   };
 
-  // Multi-category filtering logic
+  const handleDeleteJobClick = (e, jobId) => {
+    e.stopPropagation();
+    if (window.confirm('คุณต้องการลบประกาศตำแหน่งงานนี้ (ปิดรับสมัคร) หรือไม่?')) {
+      if (onDeleteJob) {
+        onDeleteJob(jobId);
+      }
+    }
+  };
+
+  // Multi-category filtering logic (Visible to EVERYONE)
   const filteredJobs = jobs.filter((job) => {
     // 1. Search filter
     const matchesSearch = 
@@ -128,10 +137,10 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <SlidersHorizontal style={{ width: '20px', height: '20px', color: '#2563eb' }} /> ตำแหน่งงานเปิดรับสมัคร
+              <SlidersHorizontal style={{ width: '20px', height: '20px', color: '#2563eb' }} /> ตำแหน่งงานเปิดรับสมัครทุกประเภท
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0' }}>
-              พบตำแหน่งงานที่ตรงตามเงื่อนไข {filteredJobs.length} รายการ
+              พบตำแหน่งงานคุณภาพที่ทุกคนมองเห็น {filteredJobs.length} รายการ
             </p>
           </div>
 
@@ -168,7 +177,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
           <div 
             key={job.id} 
             className="clean-card"
-            style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+            style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
             onClick={() => onSelectJob(job)}
           >
             <div>
@@ -190,9 +199,34 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
                   </div>
                 </div>
 
-                <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                  Match {job.matchRate}%
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                    Match {job.matchRate}%
+                  </span>
+
+                  {/* Delete Job Button for Employer */}
+                  {currentUser && currentUser.role === 'employer' && (
+                    <button
+                      onClick={(e) => handleDeleteJobClick(e, job.id)}
+                      title="ปิดรับสมัคร / ลบประกาศงาน"
+                      style={{
+                        background: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        color: '#ef4444',
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <Trash2 style={{ width: '12px', height: '12px' }} /> ลบงาน
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Badges Info */}

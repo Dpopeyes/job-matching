@@ -8,7 +8,7 @@ import ProfilePage from './components/ProfilePage';
 import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
 import { MOCK_JOBS, MOCK_APPLICATIONS } from './data/mockData';
-import { fetchJobs, loginUser, submitApplication, fetchUserApplications } from './data/api';
+import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications } from './data/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -20,12 +20,7 @@ export default function App() {
   const loadJobsData = async () => {
     const dbJobs = await fetchJobs();
     if (dbJobs && dbJobs.length > 0) {
-      // Merge DB jobs with any newly posted jobs ensuring no duplicates
-      setJobs(prevJobs => {
-        const existingIds = new Set(dbJobs.map(j => j.id));
-        const customPosted = prevJobs.filter(j => !existingIds.has(j.id));
-        return [...customPosted, ...dbJobs];
-      });
+      setJobs(dbJobs);
     }
   };
 
@@ -44,6 +39,11 @@ export default function App() {
 
   const handleAddNewJob = (newJob) => {
     setJobs(prevJobs => [newJob, ...prevJobs]);
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    await deleteJob(jobId);
+    setJobs(prevJobs => prevJobs.filter(j => j.id !== jobId));
   };
 
   const handleJobSelect = (job) => {
@@ -110,6 +110,7 @@ export default function App() {
             onNavigateToProfile={() => setActiveTab('profile')}
             onRefreshJobs={loadJobsData}
             onAddNewJob={handleAddNewJob}
+            onDeleteJob={handleDeleteJob}
           />
         )}
 

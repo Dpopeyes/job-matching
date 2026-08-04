@@ -12,6 +12,19 @@ export async function fetchJobs() {
   }
 }
 
+// Delete Job API (สำหรับปิดรับสมัครหรือลบประกาศงาน)
+export async function deleteJob(jobId) {
+  try {
+    const res = await fetch(`${API_BASE}/jobs/${jobId}`, {
+      method: 'DELETE'
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('API Error (Delete Job):', err);
+    return null;
+  }
+}
+
 // Login API
 export async function loginUser(email, password) {
   try {
@@ -114,32 +127,5 @@ export async function deleteUserSkill(skillId) {
   } catch (err) {
     console.error('API Error (Delete Skill):', err);
     return null;
-  }
-}
-
-// Add Project to DB
-export async function addUserProject(userId, projectData) {
-  try {
-    const res = await fetch(`${API_BASE}/projects`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, ...projectData })
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('API Error (Add Project):', err);
-    return null;
-  }
-}
-
-// Fetch Admin Table Rows
-export async function fetchAdminTableData(tableName) {
-  try {
-    const res = await fetch(`${API_BASE}/admin/tables/${tableName}`);
-    if (!res.ok) throw new Error('Fetch admin table failed');
-    return await res.json();
-  } catch (err) {
-    console.warn('API Error (Admin Table):', err);
-    return [];
   }
 }
