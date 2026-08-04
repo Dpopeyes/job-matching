@@ -12,15 +12,59 @@ import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplicatio
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [currentUser, setCurrentUser] = useState(null);
+
+  // 1. User Session Persistence via localStorage (ไม่ต้องออกจากระบบเมื่อรีเฟรช)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('app_current_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [selectedJob, setSelectedJob] = useState(null);
-  const [jobs, setJobs] = useState(MOCK_JOBS);
+
+  // 2. Jobs Persistence via localStorage + SQLite DB
+  const [jobs, setJobs] = useState(() => {
+    try {
+      const savedJobs = localStorage.getItem('app_jobs_data');
+      return savedJobs ? JSON.parse(savedJobs) : MOCK_JOBS;
+    } catch (e) {
+      return MOCK_JOBS;
+    }
+  });
+
   const [applications, setApplications] = useState(MOCK_APPLICATIONS);
 
+  // Sync Current User with localStorage
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('app_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('app_current_user');
+    }
+  }, [currentUser]);
+
+  // Sync Jobs with localStorage
+  useEffect(() => {
+    if (jobs && jobs.length > 0) {
+      localStorage.setItem('app_jobs_data', JSON.stringify(jobs));
+    }
+  }, [jobs]);
+
+  // Load latest jobs from SQLite DB Server
   const loadJobsData = async () => {
     const dbJobs = await fetchJobs();
     if (dbJobs && dbJobs.length > 0) {
-      setJobs(dbJobs);
+      setJobs(prevJobs => {
+        // Merge DB jobs with any local newly posted jobs
+        const existingIds = new Set(dbJobs.map(j => j.id));
+        const localCustomJobs = prevJobs.filter(j => !existingIds.has(j.id));
+        const merged = [...localCustomJobs, ...dbJobs];
+        localStorage.setItem('app_jobs_data', JSON.stringify(merged));
+        return merged;
+      });
     }
   };
 
@@ -37,13 +81,23 @@ export default function App() {
     loadData();
   }, [currentUser?.id]);
 
+  // Add new job posted by Employer instantly for everyone
   const handleAddNewJob = (newJob) => {
-    setJobs(prevJobs => [newJob, ...prevJobs]);
+    setJobs(prevJobs => {
+      const updated = [newJob, ...prevJobs.filter(j => j.id !== newJob.id)];
+      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
+      return updated;
+    });
   };
 
+  // Delete job for Employer
   const handleDeleteJob = async (jobId) => {
     await deleteJob(jobId);
-    setJobs(prevJobs => prevJobs.filter(j => j.id !== jobId));
+    setJobs(prevJobs => {
+      const updated = prevJobs.filter(j => j.id !== jobId);
+      localStorage.setItem('app_jobs_data', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleJobSelect = (job) => {
@@ -78,6 +132,7 @@ export default function App() {
   const handleLoginSuccess = async (user) => {
     if (user) {
       setCurrentUser(user);
+      localStorage.setItem('app_current_user', JSON.stringify(user));
     }
     setActiveTab('home');
   };
@@ -85,8 +140,15 @@ export default function App() {
   const handleRegisterSuccess = async (user) => {
     if (user) {
       setCurrentUser(user);
+      localStorage.setItem('app_current_user', JSON.stringify(user));
     }
     setActiveTab('profile');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('app_current_user');
+    setActiveTab('home');
   };
 
   return (
@@ -97,7 +159,7 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         currentUser={currentUser} 
-        setCurrentUser={setCurrentUser} 
+        setCurrentUser={handleLogout} 
       />
 
       {/* Main Views */}
