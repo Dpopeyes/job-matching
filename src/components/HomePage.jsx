@@ -23,6 +23,12 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
 
   // Handle instant job post addition for everyone
   const handleJobPostedSuccess = (newJob) => {
+    // 1. Reset filter to 'all' so the new job is guaranteed to be visible at the top!
+    setSelectedCategory('all');
+    setSearchTerm('');
+    setSelectedProvince('ทุกสถานที่ (ทั่วประเทศไทย)');
+
+    // 2. Add job to state immediately
     if (onAddNewJob) {
       onAddNewJob(newJob);
     }
@@ -44,6 +50,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
   const filteredJobs = jobs.filter((job) => {
     // 1. Search filter
     const matchesSearch = 
+      !searchTerm ||
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -185,7 +192,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <img 
-                    src={job.logo} 
+                    src={job.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60'} 
                     alt={job.company} 
                     style={{ width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
                   />
@@ -201,7 +208,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                    Match {job.matchRate}%
+                    Match {job.matchRate || 95}%
                   </span>
 
                   {/* Delete Job Button for Employer */}
@@ -231,12 +238,12 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
 
               {/* Badges Info */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                <span className="badge badge-primary">{job.type}</span>
+                <span className="badge badge-primary">{job.type || 'งานเต็มเวลา'}</span>
                 <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: '600', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
-                  📍 {job.location}
+                  📍 {job.location || 'กรุงเทพมหานคร'}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px' }}>
-                  💰 {job.salary}
+                  💰 {job.salary || 'ตามตกลง'}
                 </span>
               </div>
 
@@ -249,7 +256,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {job.skillsRequired && job.skillsRequired.map((skill, idx) => (
                   <span key={idx} className="badge badge-skill" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                    {skill}
+                    {typeof skill === 'string' ? skill : skill.name}
                   </span>
                 ))}
               </div>
@@ -258,7 +265,7 @@ export default function HomePage({ jobs = MOCK_JOBS, onSelectJob, currentUser, o
 
             {/* Bottom Card Link */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', marginTop: '14px', borderTop: '1px solid #f1f5f9', fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>
-              <span>{job.postedDate}</span>
+              <span>{job.postedDate || 'วันนี้'}</span>
               <span style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: '700' }}>
                 ดูรายละเอียด <ChevronRight style={{ width: '14px', height: '14px' }} />
               </span>
