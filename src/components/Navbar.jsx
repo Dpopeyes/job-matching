@@ -16,19 +16,19 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
       <div className="app-container">
         <div className="navbar-inner">
           
-          {/* Logo & Project Title featuring JPG Pink Tech Suit Owl Mascot & Josefin Sans Font */}
+          {/* Logo & Project Title featuring Pink Tech Suit Owl Mascot & Josefin Sans Font */}
           <div 
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleNavClick('home')}
           >
             <div className="brand-logo-box-mini">
               <img 
-                src="/logo.jpg" 
-                alt="FreshGrad Jobs Pink Owl Logo JPG" 
+                src="/logo.svg" 
+                alt="FreshGrad Jobs Pink Owl Logo SVG" 
                 style={{ 
                   width: '42px', 
                   height: '42px', 
-                  objectFit: 'cover'
+                  objectFit: 'contain'
                 }}
               />
             </div>
