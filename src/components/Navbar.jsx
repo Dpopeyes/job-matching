@@ -16,16 +16,16 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
       <div className="app-container">
         <div className="navbar-inner">
           
-          {/* Logo & Project Title featuring Josefin Sans Font */}
+          {/* Logo & Project Title featuring Mini Cute Mascot & Josefin Sans Font */}
           <div 
-            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleNavClick('home')}
           >
-            <div className="brand-logo-box">
+            <div className="brand-logo-box-mini">
               <img 
                 src="/logo.jpg" 
-                alt="FreshGrad Jobs Logo" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                alt="FreshGrad Jobs Mini Owl Logo" 
+                style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '50%', transform: 'scale(1.05)' }}
               />
             </div>
             <div>
@@ -34,7 +34,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                   className="font-josefin"
                   style={{ 
                     fontWeight: '800', 
-                    fontSize: '1.4rem', 
+                    fontSize: '1.35rem', 
                     color: '#1e3a8a', 
                     letterSpacing: '-0.02em',
                     lineHeight: 1

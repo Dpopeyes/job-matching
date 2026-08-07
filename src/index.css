@@ -67,16 +67,22 @@ body {
   height: 72px;
 }
 
-.brand-logo-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.brand-logo-box-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-  border: 1px solid #e2e8f0;
+  background: #fdf2f8;
+  border: 1.5px solid #fbcfe8;
+  box-shadow: 0 2px 8px rgba(255, 102, 153, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.brand-logo-box-mini:hover {
+  transform: scale(1.08);
 }
 
 .nav-btn {
