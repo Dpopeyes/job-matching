@@ -16,21 +16,34 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
       <div className="app-container">
         <div className="navbar-inner">
           
-          {/* Logo & Project Title */}
+          {/* Logo & Project Title featuring Josefin Sans Font */}
           <div 
             style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
             onClick={() => handleNavClick('home')}
           >
             <div className="brand-logo-box">
-              <Briefcase style={{ width: '22px', height: '22px' }} />
+              <img 
+                src="/logo.jpg" 
+                alt="FreshGrad Jobs Logo" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: '800', fontSize: '1.25rem', color: '#1e3a8a' }}>
+                <span 
+                  className="font-josefin"
+                  style={{ 
+                    fontWeight: '800', 
+                    fontSize: '1.4rem', 
+                    color: '#1e3a8a', 
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1
+                  }}
+                >
                   FreshGrad Jobs
                 </span>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>ศูนย์รวมตำแหน่งงานและลงประกาศงานทุกประเภท</p>
+              <p style={{ fontSize: '0.725rem', color: '#64748b', margin: '2px 0 0' }}>ศูนย์รวมตำแหน่งงานและลงประกาศงานทุกประเภท</p>
             </div>
           </div>
 
