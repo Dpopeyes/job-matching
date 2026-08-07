@@ -67,17 +67,18 @@ body {
   height: 72px;
 }
 
+/* Tiny Cute Compact Logo Box */
 .brand-logo-box-mini {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fdf2f8;
-  border: 1.5px solid #fbcfe8;
-  box-shadow: 0 2px 8px rgba(255, 102, 153, 0.2);
+  background: #fff1f2;
+  border: 2px solid #fecdd3;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.15);
   transition: transform 0.2s ease;
 }
 
