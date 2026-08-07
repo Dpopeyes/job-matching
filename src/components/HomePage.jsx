@@ -88,6 +88,15 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
       
+      {/* 2K High-Res Hero Banner Image */}
+      <div style={{ marginBottom: '28px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)', border: '1px solid #e2e8f0' }}>
+        <img 
+          src="/cover.jpg" 
+          alt="FreshGrad Jobs 2K Cover Banner" 
+          style={{ width: '100%', height: 'auto', maxHeight: '340px', objectFit: 'cover', display: 'block' }}
+        />
+      </div>
+
       {/* Hero Banner Section */}
       <section className="hero-box">
         <div style={{ maxWidth: '850px', margin: '0 auto', textAlign: 'center' }}>
