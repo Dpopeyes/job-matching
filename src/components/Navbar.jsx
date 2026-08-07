@@ -21,17 +21,14 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleNavClick('home')}
           >
-            <div className="brand-logo-box-tiny">
+            <div className="brand-logo-box-mini">
               <img 
-                src="/logo.jpg" 
+                src="/logo.svg" 
                 alt="FreshGrad Jobs Tiny Pink Owl Logo" 
                 style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  objectFit: 'contain', 
-                  borderRadius: '50%', 
-                  transform: 'scale(0.78)',
-                  padding: '2px'
+                  width: '38px', 
+                  height: '38px', 
+                  objectFit: 'contain'
                 }}
               />
             </div>

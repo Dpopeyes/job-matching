@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <!-- Background Circle -->
+  <circle cx="250" cy="250" r="240" fill="#FFF1F2" stroke="#FECDD3" stroke-width="8"/>
+  
+  <!-- Tiny Cute Chibi Pink Owl Group (Scaled Down Centered) -->
+  <g transform="translate(250, 260) scale(0.65)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="180" rx="90" ry="20" fill="#CBD5E1" opacity="0.4"/>
+    
+    <!-- Tiny Owl Legs -->
+    <ellipse cx="-35" cy="165" rx="14" ry="8" fill="#F59E0B"/>
+    <ellipse cx="35" cy="165" rx="14" ry="8" fill="#F59E0B"/>
+    
+    <!-- Cute Grey Suit Body -->
+    <path d="M -75,60 C -85,120 -60,165 0,165 C 60,165 85,120 75,60 Z" fill="#475569"/>
+    <!-- Suit Shirt & Tie -->
+    <polygon points="0,60 -25,120 25,120" fill="#FFFFFF"/>
+    <polygon points="0,65 -8,110 0,125 8,110" fill="#2563EB"/>
+    <!-- Suit Jacket Lapels -->
+    <path d="M -75,60 L -25,120 L -45,130 Z" fill="#334155"/>
+    <path d="M 75,60 L 25,120 L 45,130 Z" fill="#334155"/>
+
+    <!-- Tiny Tablet Held by Wings -->
+    <rect x="-40" y="85" width="80" height="60" rx="8" fill="#0F172A" stroke="#38BDF8" stroke-width="4"/>
+    <rect x="-34" y="91" width="68" height="48" rx="4" fill="#0284C7"/>
+    <circle cx="0" cy="115" r="8" fill="#FFFFFF" opacity="0.8"/>
+
+    <!-- Chibi Cute Big Head (#FF6699) -->
+    <ellipse cx="0" cy="-30" rx="115" ry="100" fill="#FF6699"/>
+    
+    <!-- Cute Owl Tuft Ears -->
+    <polygon points="-80,-115 -110,-60 -50,-80" fill="#FF6699"/>
+    <polygon points="80,-115 110,-60 50,-80" fill="#FF6699"/>
+    <polygon points="-75,-105 -95,-65 -55,-80" fill="#F43F5E"/>
+    <polygon points="75,-105 95,-65 55,-80" fill="#F43F5E"/>
+
+    <!-- White Eye Circles -->
+    <ellipse cx="-45" cy="-35" rx="42" ry="42" fill="#FFFFFF"/>
+    <ellipse cx="45" cy="-35" rx="42" ry="42" fill="#FFFFFF"/>
+    
+    <!-- Big Sparkling Cute Pupils -->
+    <circle cx="-42" cy="-32" r="26" fill="#0F172A"/>
+    <circle cx="48" cy="-32" r="26" fill="#0F172A"/>
+    <circle cx="-50" cy="-40" r="10" fill="#FFFFFF"/>
+    <circle cx="40" cy="-40" r="10" fill="#FFFFFF"/>
+    <circle cx="-34" cy="-24" r="5" fill="#FFFFFF"/>
+    <circle cx="56" cy="-24" r="5" fill="#FFFFFF"/>
+
+    <!-- Cute Cheeks -->
+    <ellipse cx="-75" cy="5" rx="16" ry="10" fill="#FB7185" opacity="0.6"/>
+    <ellipse cx="75" cy="5" rx="16" ry="10" fill="#FB7185" opacity="0.6"/>
+
+    <!-- Cute Yellow Beak -->
+    <polygon points="0,-18 -16,5 0,15 16,5" fill="#F59E0B"/>
+  </g>
+</svg>
