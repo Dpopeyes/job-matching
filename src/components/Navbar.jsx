@@ -16,7 +16,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
       <div className="app-container">
         <div className="navbar-inner">
           
-          {/* Logo & Project Title featuring Tiny Cute Owl Mascot & Josefin Sans Font */}
+          {/* Logo & Project Title featuring Larger Pink Owl Mascot & Josefin Sans Font */}
           <div 
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
             onClick={() => handleNavClick('home')}
@@ -24,10 +24,10 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
             <div className="brand-logo-box-mini">
               <img 
                 src="/logo.svg" 
-                alt="FreshGrad Jobs Tiny Pink Owl Logo" 
+                alt="FreshGrad Jobs Pink Owl Logo" 
                 style={{ 
-                  width: '38px', 
-                  height: '38px', 
+                  width: '42px', 
+                  height: '42px', 
                   objectFit: 'contain'
                 }}
               />
@@ -38,7 +38,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                   className="font-josefin"
                   style={{ 
                     fontWeight: '800', 
-                    fontSize: '1.35rem', 
+                    fontSize: '1.4rem', 
                     color: '#1e3a8a', 
                     letterSpacing: '-0.02em',
                     lineHeight: 1
