@@ -2,8 +2,8 @@
   <!-- Background Circle -->
   <circle cx="250" cy="250" r="240" fill="#FFF1F2" stroke="#FECDD3" stroke-width="8"/>
   
-  <!-- Chibi Pink Owl Group Scaled Up (Larger & Clearer) -->
-  <g transform="translate(250, 255) scale(0.85)">
+  <!-- Pink Owl Group Scaled Up & Centered fill (Larger Body & Big Head) -->
+  <g transform="translate(250, 245) scale(1.15)">
     <!-- Shadow -->
     <ellipse cx="0" cy="180" rx="90" ry="20" fill="#CBD5E1" opacity="0.4"/>
     
