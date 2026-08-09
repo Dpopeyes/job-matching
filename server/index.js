@@ -352,6 +352,28 @@ app.post('/api/applications/:appId/messages', (req, res) => {
   }
 });
 
+// GET All Users (Admin only — list all users)
+app.get('/api/users', (req, res) => {
+  try {
+    const users = db.prepare('SELECT id, name, email, role, university, major, avatar, bio, phone, website FROM users ORDER BY createdAt DESC').all();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET Single User by ID (for admin profile inspection)
+app.get('/api/users/:userId', (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, name, email, role, studentId, university, major, avatar, bio, phone, website FROM users WHERE id = ?').get(req.params.userId);
+    if (!user) return res.status(404).json({ error: 'ไม่พบข้อมูลผู้ใช้' });
+    const skills = db.prepare('SELECT id, name, level FROM skills WHERE userId = ?').all(req.params.userId);
+    res.json({ ...user, skills });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET User Portfolio (ดึงข้อมูลประวัติและผลงานทั้งหมด)
 app.get('/api/users/:userId/portfolio', (req, res) => {
   try {

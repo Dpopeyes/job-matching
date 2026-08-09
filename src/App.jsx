@@ -9,6 +9,7 @@ import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
 import HotChat from './components/HotChat';
 import PostJobModal from './components/PostJobModal';
+import AdminDashboard from './components/AdminDashboard';
 import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications } from './data/api';
 
 export default function App() {
@@ -295,6 +296,12 @@ export default function App() {
               setActiveChatApp(app);
               setIsChatOpen(true);
             }}
+          />
+        )}
+
+        {activeTab === 'admin' && currentUser?.role === 'admin' && (
+          <AdminDashboard
+            currentUser={currentUser}
           />
         )}
       </main>
