@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check } from 'lucide-react';
+import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2 } from 'lucide-react';
 
-export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess }) {
+export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess, onEditJob, onDeleteJob }) {
   const [coverNote, setCoverNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appliedSuccess, setAppliedSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleEdit = () => {
+    if (onEditJob) onEditJob(job);
+  };
+
+  const handleDelete = () => {
+    if (onDeleteJob) onDeleteJob(job.id);
+  };
 
   if (!job) {
     return (
@@ -73,13 +81,56 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
             </div>
           </div>
 
-          <button
-            onClick={handleShare}
-            className="btn btn-secondary"
-            style={{ fontSize: '0.8rem', padding: '8px 14px' }}
-          >
-            {copiedLink ? <><Check style={{ width: '14px', height: '14px', color: '#059669' }} /> คัดลอกลิงก์แล้ว</> : <><Share2 style={{ width: '14px', height: '14px' }} /> แชร์ตำแหน่งงาน</>}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="btn btn-secondary"
+                  style={{ 
+                    fontSize: '0.8rem', 
+                    padding: '8px 14px', 
+                    background: '#eff6ff', 
+                    border: '1px solid #bfdbfe', 
+                    color: '#1d4ed8', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    borderRadius: '8px',
+                    cursor: 'pointer' 
+                  }}
+                >
+                  <Edit style={{ width: '14px', height: '14px' }} /> แก้ไขประกาศ
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="btn btn-secondary"
+                  style={{ 
+                    fontSize: '0.8rem', 
+                    padding: '8px 14px', 
+                    background: '#fef2f2', 
+                    border: '1px solid #fecaca', 
+                    color: '#ef4444', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    borderRadius: '8px',
+                    cursor: 'pointer' 
+                  }}
+                >
+                  <Trash2 style={{ width: '14px', height: '14px' }} /> ลบประกาศ
+                </button>
+              </>
+            )}
+
+            <button
+              onClick={handleShare}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.8rem', padding: '8px 14px' }}
+            >
+              {copiedLink ? <><Check style={{ width: '14px', height: '14px', color: '#059669' }} /> คัดลอกลิงก์แล้ว</> : <><Share2 style={{ width: '14px', height: '14px' }} /> แชร์ตำแหน่งงาน</>}
+            </button>
+          </div>
 
         </div>
 
@@ -95,6 +146,11 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
           <span style={{ background: '#f8fafc', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', padding: '4px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             📅 {job.postedDate}
           </span>
+          {job.vacancies && (
+            <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '0.8rem', fontWeight: '700', padding: '4px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              👥 เปิดรับ: {job.vacancies} อัตรา
+            </span>
+          )}
         </div>
 
       </div>

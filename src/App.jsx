@@ -7,10 +7,46 @@ import RegisterPage from './components/RegisterPage';
 import ProfilePage from './components/ProfilePage';
 import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
-import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications } from './data/api';
+import HotChat from './components/HotChat';
+import PostJobModal from './components/PostJobModal';
+import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications } from './data/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [viewProfileId, setViewProfileId] = useState(null);
+
+  // Handle URL Routing for /profile/:userId dynamically
+  useEffect(() => {
+    const handleUrlRouting = () => {
+      const path = window.location.pathname;
+      const match = path.match(/^\/profile\/([^/]+)$/);
+      if (match) {
+        const userId = match[1];
+        setViewProfileId(userId);
+        setActiveTab('view-profile');
+      } else {
+        setViewProfileId(null);
+      }
+    };
+
+    handleUrlRouting(); // Run on mount
+    window.addEventListener('popstate', handleUrlRouting);
+    return () => window.removeEventListener('popstate', handleUrlRouting);
+  }, []);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'home') {
+      window.history.pushState({}, '', '/');
+      setViewProfileId(null);
+    } else if (tab === 'profile' && currentUser?.id) {
+      window.history.pushState({}, '', `/profile/${currentUser.id}`);
+      setViewProfileId(currentUser.id);
+    } else {
+      window.history.pushState({}, '', '/');
+      setViewProfileId(null);
+    }
+  };
 
   // 1. User Session Persistence (per browser)
   const [currentUser, setCurrentUser] = useState(() => {
@@ -23,6 +59,10 @@ export default function App() {
   });
 
   const [selectedJob, setSelectedJob] = useState(null);
+  const [activeChatApp, setActiveChatApp] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showPostJobModal, setShowPostJobModal] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
 
   // 2. Real Jobs state synced ONLY with SQLite Shared DB and localStorage (NO MOCK DATA)
   const [jobs, setJobs] = useState(() => {
@@ -62,25 +102,32 @@ export default function App() {
     }
   };
 
+  // Load Latest Applications from SQLite DB Server (handles both applicant and employer roles)
+  const loadApplicationsData = async () => {
+    if (!currentUser?.id) return;
+    const dbApps = currentUser.role === 'employer'
+      ? await fetchEmployerApplications(currentUser.id)
+      : await fetchUserApplications(currentUser.id);
+    if (dbApps) {
+      setApplications(dbApps);
+    }
+  };
+
   useEffect(() => {
     async function loadData() {
       await loadJobsData();
-      if (currentUser?.id) {
-        const dbApps = await fetchUserApplications(currentUser.id);
-        if (dbApps) {
-          setApplications(dbApps);
-        }
-      }
+      await loadApplicationsData();
     }
     loadData();
 
     // Auto Poll Shared DB Every 3 Seconds for 100% Real-Time updates across all devices
     const interval = setInterval(() => {
       loadJobsData();
+      loadApplicationsData();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.role]);
 
   // Add new job posted by Employer instantly
   const handleAddNewJob = (newJob) => {
@@ -90,6 +137,12 @@ export default function App() {
       return updated;
     });
     loadJobsData();
+  };
+
+  const handleJobPostedSuccess = (newJob) => {
+    handleAddNewJob(newJob);
+    setShowPostJobModal(false);
+    setEditingJob(null);
   };
 
   // Delete job for Employer
@@ -138,7 +191,7 @@ export default function App() {
       setCurrentUser(user);
       localStorage.setItem('app_current_user', JSON.stringify(user));
     }
-    setActiveTab('home');
+    handleTabChange('home');
   };
 
   const handleRegisterSuccess = async (user) => {
@@ -146,13 +199,13 @@ export default function App() {
       setCurrentUser(user);
       localStorage.setItem('app_current_user', JSON.stringify(user));
     }
-    setActiveTab('profile');
+    handleTabChange('profile');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('app_current_user');
-    setActiveTab('home');
+    handleTabChange('home');
   };
 
   return (
@@ -160,8 +213,8 @@ export default function App() {
       
       {/* Navbar Header */}
       <Navbar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        activeTab={activeTab === 'view-profile' && viewProfileId === currentUser?.id ? 'profile' : activeTab} 
+        setActiveTab={handleTabChange} 
         currentUser={currentUser} 
         setCurrentUser={handleLogout} 
       />
@@ -173,10 +226,18 @@ export default function App() {
             jobs={jobs} 
             onSelectJob={handleJobSelect} 
             currentUser={currentUser} 
-            onNavigateToProfile={() => setActiveTab('profile')}
+            onNavigateToProfile={() => handleTabChange('profile')}
             onRefreshJobs={loadJobsData}
             onAddNewJob={handleAddNewJob}
             onDeleteJob={handleDeleteJob}
+            onOpenPostJobModal={() => {
+              setEditingJob(null);
+              setShowPostJobModal(true);
+            }}
+            onOpenEditJobModal={(job) => {
+              setEditingJob(job);
+              setShowPostJobModal(true);
+            }}
           />
         )}
 
@@ -184,28 +245,43 @@ export default function App() {
           <JobDetailPage
             job={selectedJob}
             currentUser={currentUser}
-            onBack={() => setActiveTab('home')}
+            onBack={() => handleTabChange('home')}
             onApplySuccess={handleApplySuccess}
+            onEditJob={(job) => {
+              setEditingJob(job);
+              setShowPostJobModal(true);
+            }}
+            onDeleteJob={async (jobId) => {
+              if (window.confirm('คุณต้องการลบประกาศตำแหน่งงานนี้ (ปิดรับสมัคร) หรือไม่?')) {
+                await handleDeleteJob(jobId);
+                handleTabChange('home');
+              }
+            }}
           />
         )}
 
         {activeTab === 'login' && (
           <LoginPage 
             onLoginSuccess={handleLoginSuccess}
-            onSwitchToRegister={() => setActiveTab('register')}
+            onSwitchToRegister={() => handleTabChange('register')}
           />
         )}
 
         {activeTab === 'register' && (
           <RegisterPage 
             onRegisterSuccess={handleRegisterSuccess}
-            onSwitchToLogin={() => setActiveTab('login')}
+            onSwitchToLogin={() => handleTabChange('login')}
           />
         )}
 
-        {activeTab === 'profile' && (
+        {(activeTab === 'profile' || activeTab === 'view-profile') && (
           <ProfilePage 
-            user={currentUser} 
+            user={activeTab === 'view-profile' ? { id: viewProfileId } : currentUser} 
+            onUpdateUser={(updatedUser) => {
+              setCurrentUser(updatedUser);
+              localStorage.setItem('app_current_user', JSON.stringify(updatedUser));
+            }}
+            readOnly={activeTab === 'view-profile' && viewProfileId !== currentUser?.id}
           />
         )}
 
@@ -213,10 +289,38 @@ export default function App() {
           <ApplicationsPage 
             applications={applications} 
             currentUser={currentUser}
-            onNavigateHome={() => setActiveTab('home')}
+            onNavigateHome={() => handleTabChange('home')}
+            onRefreshApplications={loadApplicationsData}
+            onOpenChat={(app) => {
+              setActiveChatApp(app);
+              setIsChatOpen(true);
+            }}
           />
         )}
       </main>
+
+      {/* Post Job Modal Popup */}
+      {showPostJobModal && (
+        <PostJobModal
+          onClose={() => {
+            setShowPostJobModal(false);
+            setEditingJob(null);
+          }}
+          onJobPosted={handleJobPostedSuccess}
+          currentUser={currentUser}
+          editingJob={editingJob}
+        />
+      )}
+
+      {/* HotChat Floating Widget */}
+      <HotChat 
+        currentUser={currentUser}
+        applications={applications}
+        activeChatApp={activeChatApp}
+        setActiveChatApp={setActiveChatApp}
+        isOpen={isChatOpen}
+        setIsOpen={setIsChatOpen}
+      />
 
       {/* Footer */}
       <Footer />

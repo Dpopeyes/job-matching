@@ -1,16 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { FileCheck, Building, Calendar, Users, Mail, Phone, CheckCircle2, User, Sparkles, MessageSquare, Clock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileCheck, Building, Calendar, Users, Mail, Phone, CheckCircle2, User, Sparkles, MessageSquare, Clock, Send, X, FolderGit2, Globe, ExternalLink, QrCode } from 'lucide-react';
+import { updateApplicationStatus, fetchMessages, sendMessage, fetchUserPortfolio } from '../data/api';
+import QRCodeModal from './QRCodeModal';
 
-export default function ApplicationsPage({ applications = [], currentUser, onNavigateHome }) {
+export default function ApplicationsPage({ applications = [], currentUser, onNavigateHome, onRefreshApplications, onOpenChat }) {
   const isEmployer = currentUser?.role === 'employer';
   const [appsState, setAppsState] = useState(applications);
+  const [activeChatApp, setActiveChatApp] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const [selectedPortfolio, setSelectedPortfolio] = useState(null);
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
+  const [qrCodeUser, setQrCodeUser] = useState(null);
+  const [schedulingApp, setSchedulingApp] = useState(null);
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewNote, setInterviewNote] = useState('');
+
+  const handleViewPortfolio = async (userId) => {
+    setIsLoadingPortfolio(true);
+    const port = await fetchUserPortfolio(userId);
+    setIsLoadingPortfolio(false);
+    if (port) {
+      setSelectedPortfolio(port);
+    } else {
+      alert('ไม่สามารถดึงข้อมูลพอร์ตโฟลิโอได้');
+    }
+  };
+
+  const handleShowQRCode = async (userId) => {
+    setIsLoadingPortfolio(true);
+    const port = await fetchUserPortfolio(userId);
+    setIsLoadingPortfolio(false);
+    if (port && port.user) {
+      setQrCodeUser(port.user);
+    } else {
+      alert('ไม่สามารถดึงข้อมูลคิวอาร์โค้ดโปรไฟล์ได้');
+    }
+  };
+
+  const handleShowMyQRCode = () => {
+    setQrCodeUser(currentUser);
+  };
+
+  const handleOpenChatAction = (app) => {
+    if (onOpenChat) {
+      onOpenChat(app);
+    } else {
+      setActiveChatApp(app);
+    }
+  };
 
   useEffect(() => {
     setAppsState(applications);
   }, [applications]);
 
-  const handleUpdateStatus = (appId, newStatus) => {
-    setAppsState(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      scrollToBottom();
+    }
+  }, [chatMessages]);
+
+  // Poll chat messages every 2 seconds when chat is open
+  useEffect(() => {
+    if (!activeChatApp) {
+      setChatMessages([]);
+      return;
+    }
+
+    const loadMessages = async () => {
+      const msgs = await fetchMessages(activeChatApp.id);
+      if (msgs) {
+        setChatMessages(msgs);
+      }
+    };
+
+    loadMessages();
+    const interval = setInterval(loadMessages, 2000);
+
+    return () => clearInterval(interval);
+  }, [activeChatApp]);
+
+  const handleUpdateStatus = async (appId, newStatus) => {
+    const res = await updateApplicationStatus(appId, newStatus);
+    if (res && res.success) {
+      setAppsState(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+      if (onRefreshApplications) {
+        onRefreshApplications();
+      }
+    } else {
+      alert('ไม่สามารถอัปเดตสถานะใบสมัครงานได้');
+    }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessageText.trim() || !activeChatApp || !currentUser) return;
+
+    setIsSending(true);
+    const content = newMessageText.trim();
+    setNewMessageText('');
+
+    const msg = await sendMessage(
+      activeChatApp.id,
+      currentUser.id,
+      currentUser.name,
+      content
+    );
+
+    if (msg) {
+      setChatMessages(prev => [...prev, msg]);
+    }
+    setIsSending(false);
   };
 
   return (
@@ -83,6 +190,22 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                   </div>
                 </div>
 
+                {/* Contact Information */}
+                {(app.applicantEmail || app.applicantPhone) && (
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#475569', background: '#f8fafc', padding: '8px 14px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                    {app.applicantEmail && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Mail style={{ width: '14px', height: '14px', color: '#64748b' }} /> {app.applicantEmail}
+                      </span>
+                    )}
+                    {app.applicantPhone && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Phone style={{ width: '14px', height: '14px', color: '#64748b' }} /> {app.applicantPhone}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Cover Note */}
                 {app.coverNote && (
                   <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5, background: '#ffffff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -93,10 +216,21 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                   </div>
                 )}
 
+                {/* Interview details if scheduled */}
+                {app.interviewDate && (
+                  <div style={{ marginTop: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 16px', fontSize: '0.8rem', color: '#166534', width: '100%', textAlign: 'left', marginBottom: '12px' }}>
+                    <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Clock style={{ width: '15px', height: '15px', color: '#15803d' }} /> นัดสัมภาษณ์แล้ว
+                    </div>
+                    <div><strong>📅 วัน-เวลาสัมภาษณ์:</strong> {new Date(app.interviewDate).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })} น.</div>
+                    {app.interviewNote && <div style={{ marginTop: '4px' }}><strong>📝 รายละเอียดเพิ่มเติม:</strong> {app.interviewNote}</div>}
+                  </div>
+                )}
+
                 {/* Employer Actions */}
-                <div style={{ display: 'flex', gap: '8px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
-                    onClick={() => handleUpdateStatus(app.id, 'นัดสัมภาษณ์ (Interview Scheduled)')}
+                    onClick={() => setSchedulingApp(app)}
                     className="btn btn-primary"
                     style={{ fontSize: '0.75rem', padding: '6px 14px' }}
                   >
@@ -108,6 +242,60 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                     style={{ fontSize: '0.75rem', padding: '6px 14px' }}
                   >
                     <CheckCircle2 style={{ width: '13px', height: '13px' }} /> รับเข้าทำงาน
+                  </button>
+                  <button
+                    onClick={() => handleOpenChatAction(app)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '6px 14px', 
+                      background: '#eff6ff', 
+                      border: '1px solid #bfdbfe', 
+                      color: '#1d4ed8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <MessageSquare style={{ width: '13px', height: '13px' }} /> พูดคุยแชทโต้ตอบ
+                  </button>
+                  <button
+                    onClick={() => handleViewPortfolio(app.userId)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '6px 14px', 
+                      background: '#faf5ff', 
+                      border: '1px solid #e9d5ff', 
+                      color: '#7e22ce',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FolderGit2 style={{ width: '13px', height: '13px' }} /> ดูพอร์ต/ผลงาน
+                  </button>
+                  <button
+                    onClick={() => handleShowQRCode(app.userId)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '6px 14px', 
+                      background: '#f0fdf4', 
+                      border: '1px solid #bbf7d0', 
+                      color: '#166534',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <QrCode style={{ width: '13px', height: '13px' }} /> คิวอาร์สแกน
                   </button>
                 </div>
 
@@ -129,34 +317,653 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {appsState.map((app) => (
-              <div key={app.id} className="clean-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                      {app.jobTitle}
-                    </h3>
-                    <span className="badge badge-accent" style={{ fontSize: '0.75rem' }}>
-                      {app.status || 'กำลังพิจารณา'}
-                    </span>
+              <div key={app.id} className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Top row: info on left, buttons on right */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                        {app.jobTitle}
+                      </h3>
+                      <span className="badge badge-accent" style={{ fontSize: '0.75rem' }}>
+                        {app.status || 'กำลังพิจารณา'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600', color: '#334155' }}>
+                        <Building style={{ width: '14px', height: '14px', color: '#2563eb' }} /> {app.company}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar style={{ width: '14px', height: '14px' }} /> ยื่นเมื่อ {app.applyDate}
+                      </span>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600', color: '#334155' }}>
-                      <Building style={{ width: '14px', height: '14px', color: '#2563eb' }} /> {app.company}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Calendar style={{ width: '14px', height: '14px' }} /> ยื่นเมื่อ {app.applyDate}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleOpenChatAction(app)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '8px 16px', 
+                      background: '#eff6ff', 
+                      border: '1px solid #bfdbfe', 
+                      color: '#1d4ed8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <MessageSquare style={{ width: '13px', height: '13px' }} /> แชทกับนายจ้าง
+                  </button>
+                  <button
+                    onClick={() => handleShowMyQRCode()}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '8px 16px', 
+                      background: '#f8fafc', 
+                      border: '1px solid #cbd5e1', 
+                      color: '#475569',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <QrCode style={{ width: '13px', height: '13px' }} /> คิวอาร์โปรไฟล์
+                  </button>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '6px 14px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
+                    ✓ ส่งข้อมูลเรียบร้อย
+                  </div>
                   </div>
                 </div>
 
-                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '6px 14px', borderRadius: '999px', border: '1px solid #a7f3d0' }}>
-                  ✓ ส่งข้อมูลให้นายจ้างแล้ว
-                </div>
+                {/* Interview schedule box — always on its own row below */}
+                {app.interviewDate && (
+                  <div style={{ marginTop: '4px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '12px 16px', fontSize: '0.8rem', color: '#1e40af', textAlign: 'left' }}>
+                    <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Clock style={{ width: '15px', height: '15px', color: '#2563eb' }} /> กำหนดการสัมภาษณ์งาน
+                    </div>
+                    <div><strong>📅 วัน-เวลาสัมภาษณ์:</strong> {new Date(app.interviewDate).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })} น.</div>
+                    {app.interviewNote && <div style={{ marginTop: '4px' }}><strong>📝 รายละเอียดเพิ่มเติม:</strong> {app.interviewNote}</div>}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )
+      )}
+
+      {/* 💬 Premium Chat Modal */}
+      {activeChatApp && (
+        <div 
+          className="animate-fade-in"
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            zIndex: 200, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            background: 'rgba(15, 23, 42, 0.65)', 
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            padding: '20px' 
+          }}
+        >
+          <div 
+            style={{ 
+              background: '#ffffff', 
+              borderRadius: '28px', 
+              maxWidth: '550px', 
+              width: '100%', 
+              height: '80vh', 
+              maxHeight: '650px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '22px 26px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare style={{ width: '20px', height: '20px', color: '#2563eb' }} /> ห้องพูดคุยสื่อสาร (Chat Box)
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, fontWeight: '500' }}>
+                  {isEmployer ? `ผู้สมัคร: ${activeChatApp.applicantName}` : `บริษัท: ${activeChatApp.company} (${activeChatApp.jobTitle})`}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveChatApp(null)}
+                style={{ 
+                  width: '38px', 
+                  height: '38px', 
+                  borderRadius: '50%', 
+                  background: '#f1f5f9', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  color: '#64748b',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
+
+            {/* Messages Body */}
+            <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {chatMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', margin: 'auto', color: '#94a3b8' }}>
+                  <MessageSquare style={{ width: '40px', height: '40px', color: '#cbd5e1', margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: '0.85rem', margin: 0, fontWeight: '500' }}>พิมพ์ส่งข้อความติดต่อกันเพื่อพูดคุยรายละเอียดงานได้เลยครับ</p>
+                </div>
+              ) : (
+                chatMessages.map((msg) => {
+                  const isMe = msg.senderId === currentUser?.id;
+                  return (
+                    <div 
+                      key={msg.id} 
+                      style={{ 
+                        alignSelf: isMe ? 'flex-end' : 'flex-start',
+                        maxWidth: '75%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: isMe ? 'flex-end' : 'flex-start'
+                      }}
+                    >
+                      {/* Sender Name */}
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px', fontWeight: '600' }}>
+                        {isMe ? 'คุณ' : msg.senderName}
+                      </span>
+                      {/* Message Bubble */}
+                      <div 
+                        style={{ 
+                          padding: '10px 16px', 
+                          borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px', 
+                          background: isMe ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : '#ffffff', 
+                          color: isMe ? '#ffffff' : '#1e293b',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                          lineHeight: 1.4,
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                          border: isMe ? 'none' : '1px solid #e2e8f0',
+                          wordBreak: 'break-word'
+                        }}
+                      >
+                        {msg.content}
+                      </div>
+                      {/* Timestamp */}
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '3px' }}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleSendMessage} style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px', background: '#ffffff' }}>
+              <input
+                type="text"
+                value={newMessageText}
+                onChange={(e) => setNewMessageText(e.target.value)}
+                placeholder="พิมพ์ข้อความตอบกลับ..."
+                style={{ 
+                  flex: 1, 
+                  padding: '12px 18px', 
+                  borderRadius: '999px', 
+                  border: '1px solid #cbd5e1', 
+                  outline: 'none', 
+                  fontSize: '0.85rem',
+                  background: '#f8fafc',
+                  transition: 'all 0.2s ease'
+                }}
+                disabled={isSending}
+                required
+              />
+              <button
+                type="submit"
+                disabled={isSending || !newMessageText.trim()}
+                style={{ 
+                  width: '44px', 
+                  height: '44px', 
+                  borderRadius: '50%', 
+                  background: newMessageText.trim() ? '#2563eb' : '#cbd5e1', 
+                  color: '#ffffff', 
+                  border: 'none', 
+                  cursor: newMessageText.trim() ? 'pointer' : 'default',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  boxShadow: newMessageText.trim() ? '0 4px 10px rgba(37, 99, 235, 0.3)' : 'none'
+                }}
+              >
+                <Send style={{ width: '16px', height: '16px' }} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📂 Candidate Portfolio Modal */}
+      {selectedPortfolio && (
+        <div 
+          className="animate-fade-in"
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            zIndex: 300, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            background: 'rgba(15, 23, 42, 0.65)', 
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            padding: '20px' 
+          }}
+        >
+          <div 
+            style={{ 
+              background: '#ffffff', 
+              borderRadius: '28px', 
+              maxWidth: '650px', 
+              width: '100%', 
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '22px 26px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%)' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#5b21b6', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FolderGit2 style={{ width: '22px', height: '22px', color: '#7c3aed' }} /> พอร์ตโฟลิโอ & ผลงานผู้สมัคร
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, fontWeight: '500' }}>
+                  ข้อมูลการศึกษาและคลังผลงานโครงการจริงของผู้สมัครงาน
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedPortfolio(null)}
+                style={{ 
+                  width: '38px', 
+                  height: '38px', 
+                  borderRadius: '50%', 
+                  background: '#f1f5f9', 
+                  border: 'none', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  color: '#64748b',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', background: '#f8fafc' }}>
+              
+              {/* User Bio Card */}
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', background: '#ffffff', border: '1px solid #e2e8f0', borderLeft: '4px solid #7c3aed', padding: '16px', borderRadius: '16px' }}>
+                <img 
+                  src={selectedPortfolio.user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'} 
+                  alt={selectedPortfolio.user.name} 
+                  style={{ width: '70px', height: '70px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #7c3aed' }}
+                />
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <h4 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>
+                    {selectedPortfolio.user.name}
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: '0 0 2px', fontWeight: '700' }}>
+                    🎓 {selectedPortfolio.user.university}
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 6px', fontWeight: '600' }}>
+                    สาขา: {selectedPortfolio.user.major} {selectedPortfolio.user.studentId && `(รหัสนักศึกษา: ${selectedPortfolio.user.studentId})`}
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', color: '#4b5563', flexWrap: 'wrap' }}>
+                    <span>✉️ {selectedPortfolio.user.email}</span>
+                    {selectedPortfolio.user.phone && <span>📞 {selectedPortfolio.user.phone}</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio block */}
+              {selectedPortfolio.user.bio && (
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px' }}>
+                  <h5 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    📝 แนะนำตัว (About Me)
+                  </h5>
+                  <p style={{ fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.5, margin: 0 }}>
+                    "{selectedPortfolio.user.bio}"
+                  </p>
+                </div>
+              )}
+
+              {/* Skills block */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px' }}>
+                <h5 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  💻 ทักษะความเชี่ยวชาญ (Skills)
+                </h5>
+                {selectedPortfolio.skills.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>ยังไม่มีการระบุทักษะ</p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedPortfolio.skills.map((s) => (
+                      <span 
+                        key={s.id} 
+                        className="badge badge-skill" 
+                        style={{ 
+                          fontSize: '0.75rem', 
+                          padding: '6px 12px', 
+                          background: '#f5f3ff', 
+                          color: '#6d28d9', 
+                          border: '1px solid #ddd6fe',
+                          fontWeight: '700'
+                        }}
+                      >
+                        {s.name} ({s.level || 'Intermediate'})
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Projects block */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px' }}>
+                <h5 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  🚀 โครงงาน & ผลงานโชว์เคส (Projects Showcase)
+                </h5>
+                {selectedPortfolio.projects.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0, textAlign: 'center', padding: '20px 0' }}>ไม่มีข้อมูลผลงานที่ลงทะเบียนไว้</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {selectedPortfolio.projects.map((p) => (
+                      <div key={p.id} style={{ border: '1px solid #e2e8f0', borderRadius: '16px', padding: '14px', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {/* Multiple Images Horizontal Scroll */}
+                        {p.images && p.images.length > 0 && (
+                          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '4px', scrollbarWidth: 'thin' }}>
+                            {p.images.map((img, idx) => (
+                              <img 
+                                key={idx}
+                                src={img} 
+                                alt={`${p.title}-${idx}`} 
+                                style={{ width: '220px', height: '130px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <h6 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                          {p.title}
+                        </h6>
+                        <p style={{ fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.4, margin: 0 }}>
+                          {p.description}
+                        </p>
+                        
+                        {/* Tags */}
+                        {p.tags && p.tags.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {p.tags.map((t, idx) => (
+                              <span key={idx} style={{ background: '#f3e8ff', color: '#6b21a8', fontSize: '0.65rem', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
+                                #{t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Links */}
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                          {p.demoUrl && (
+                            <a 
+                              href={p.demoUrl} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
+                            >
+                              <Globe style={{ width: '12px', height: '12px' }} /> ลิงก์สาธิต Demo <ExternalLink style={{ width: '10px', height: '10px' }} />
+                            </a>
+                          )}
+                          {p.githubUrl && (
+                            <a 
+                              href={p.githubUrl} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ fontSize: '0.75rem', color: '#1e293b', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}
+                            >
+                              <FolderGit2 style={{ width: '12px', height: '12px' }} /> ซอร์สโค้ด GitHub <ExternalLink style={{ width: '10px', height: '10px' }} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', background: '#ffffff' }}>
+              <button 
+                onClick={() => setSelectedPortfolio(null)}
+                className="btn btn-secondary"
+                style={{ borderRadius: '10px', fontSize: '0.85rem', padding: '8px 20px' }}
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Indicator for Portfolio */}
+      {isLoadingPortfolio && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#ffffff', padding: '20px 30px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', fontWeight: '700', color: '#5b21b6' }}>
+            <FolderGit2 style={{ color: '#7c3aed' }} /> กำลังโหลดพอร์ตโฟลิโอ...
+          </div>
+        </div>
+      )}
+
+      {qrCodeUser && (
+        <QRCodeModal user={qrCodeUser} onClose={() => setQrCodeUser(null)} />
+      )}
+
+      {/* 📅 Schedule Interview Modal */}
+      {schedulingApp && (
+        <div 
+          className="animate-fade-in"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px'
+          }}
+        >
+          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '480px', width: '100%', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #e2e8f0', position: 'relative', textAlign: 'left' }}>
+            {/* Close Button */}
+            <button
+              onClick={() => setSchedulingApp(null)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: '#f1f5f9',
+                border: 'none',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
+            >
+              <X style={{ width: '16px', height: '16px' }} />
+            </button>
+
+            {/* Header Icon & Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Clock style={{ width: '22px', height: '22px' }} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>นัดหมายสัมภาษณ์งาน</h3>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px', lineHeight: 1.5 }}>
+              ระบุวันเวลาและรายละเอียดการนัดหมายเพื่อแจ้งตารางสัมภาษณ์แก่ผู้สมัคร <strong>{schedulingApp.applicantName}</strong> ทราบผ่านระบบสถานะสมัครงานแบบเรียลไทม์
+            </p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!interviewDate) {
+                alert('กรุณาเลือกวันและเวลาที่นัดหมาย');
+                return;
+              }
+              const res = await updateApplicationStatus(schedulingApp.id, 'นัดสัมภาษณ์ (Interview Scheduled)', interviewDate, interviewNote);
+              if (res && res.success) {
+                setAppsState(prev => prev.map(a => a.id === schedulingApp.id ? { 
+                  ...a, 
+                  status: 'นัดสัมภาษณ์ (Interview Scheduled)',
+                  interviewDate,
+                  interviewNote
+                } : a));
+                if (onRefreshApplications) {
+                  onRefreshApplications();
+                }
+                setSchedulingApp(null);
+                setInterviewDate('');
+                setInterviewNote('');
+              } else {
+                alert('ไม่สามารถบันทึกตารางนัดหมายได้');
+              }
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  วันและเวลานัดสัมภาษณ์ <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input 
+                  type="datetime-local" 
+                  value={interviewDate}
+                  onChange={(e) => setInterviewDate(e.target.value)}
+                  required
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    fontSize: '0.9rem', 
+                    borderRadius: '12px', 
+                    border: '1px solid #cbd5e1', 
+                    background: '#f8fafc',
+                    color: '#0f172a',
+                    fontWeight: '600'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  รายละเอียด / ลิงก์ห้องประชุม (เช่น Google Meet, Zoom หรือที่ตั้งออฟฟิศ)
+                </label>
+                <textarea 
+                  value={interviewNote}
+                  onChange={(e) => setInterviewNote(e.target.value)}
+                  placeholder="เช่น ลิงก์สัมภาษณ์ออนไลน์ Google Meet: https://meet.google.com/abc-defg-hij หรือสถานที่ตั้งสาขา..."
+                  rows="4"
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 14px', 
+                    fontSize: '0.85rem', 
+                    borderRadius: '12px', 
+                    border: '1px solid #cbd5e1', 
+                    background: '#f8fafc',
+                    color: '#0f172a',
+                    resize: 'none',
+                    lineHeight: 1.5
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setSchedulingApp(null)} 
+                  className="btn"
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '700', 
+                    borderRadius: '14px', 
+                    background: '#f1f5f9', 
+                    border: '1px solid #cbd5e1', 
+                    color: '#475569', 
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
+                  onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn"
+                  style={{ 
+                    flex: 1, 
+                    padding: '12px', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '700', 
+                    borderRadius: '14px', 
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', 
+                    border: 'none', 
+                    color: '#ffffff', 
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.3)'}
+                  onMouseLeave={(e) => e.target.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.2)'}
+                >
+                  ตกลง นัดหมาย
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

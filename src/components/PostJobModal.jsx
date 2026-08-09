@@ -1,18 +1,35 @@
 import React, { useState } from 'react';
 import { X, Building, MapPin, DollarSign, Plus, CheckCircle2, Sparkles, Briefcase, FileText } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
+import { updateJob } from '../data/api';
 
-export default function PostJobModal({ onClose, onJobPosted }) {
+const SALARY_OPTIONS = [
+  '10,000 - 15,000 บาท/เดือน',
+  '15,000 - 20,000 บาท/เดือน',
+  '20,000 - 25,000 บาท/เดือน',
+  '25,000 - 30,000 บาท/เดือน',
+  '30,000 - 35,000 บาท/เดือน',
+  '35,000 - 40,000 บาท/เดือน',
+  '40,000 - 50,000 บาท/เดือน',
+  '50,000 - 60,000 บาท/เดือน',
+  '60,000 - 80,000 บาท/เดือน',
+  '80,000 - 100,000 บาท/เดือน',
+  '100,000+ บาท/เดือน',
+  'ตามตกลง / โครงสร้างบริษัท'
+];
+
+export default function PostJobModal({ onClose, onJobPosted, currentUser, editingJob }) {
   const [formData, setFormData] = useState({
-    title: '',
-    company: '',
-    category: 'all',
-    location: 'กรุงเทพมหานคร',
-    type: 'งานเต็มเวลา (Entry-level)',
-    salary: '20,000 - 30,000 บาท/เดือน',
-    description: '',
-    skillsRequired: 'การสื่อสาร, คอมพิวเตอร์, การทำงานเป็นทีม',
-    qualifications: 'จบการศึกษาระดับ ปวส. หรือ ปริญญาตรีทุกสาขา, มีความกระตือรือร้น'
+    title: editingJob?.title || '',
+    company: editingJob?.company || '',
+    category: editingJob?.category || 'all',
+    location: editingJob?.location || 'กรุงเทพมหานคร',
+    type: editingJob?.type || 'งานเต็มเวลา (Entry-level)',
+    salary: editingJob?.salary || '20,000 - 30,000 บาท/เดือน',
+    description: editingJob?.description || '',
+    skillsRequired: editingJob?.skillsRequired ? (Array.isArray(editingJob.skillsRequired) ? editingJob.skillsRequired.join(', ') : editingJob.skillsRequired) : 'การสื่อสาร, คอมพิวเตอร์, การทำงานเป็นทีม',
+    qualifications: editingJob?.qualifications ? (Array.isArray(editingJob.qualifications) ? editingJob.qualifications.join(', ') : editingJob.qualifications) : 'จบการศึกษาระดับ ปวส. หรือ ปริญญาตรีทุกสาขา, มีความกระตือรือร้น',
+    vacancies: editingJob?.vacancies || 1
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,36 +48,40 @@ export default function PostJobModal({ onClose, onJobPosted }) {
     const qualificationsArray = formData.qualifications.split(',').map(s => s.trim()).filter(Boolean);
 
     const newJobPayload = {
-      id: `job-${Date.now()}`,
+      id: editingJob ? editingJob.id : `job-${Date.now()}`,
       title: formData.title,
       company: formData.company,
-      logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
+      logo: editingJob?.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
       location: formData.location || 'กรุงเทพมหานคร',
       category: formData.category || 'all',
       type: formData.type || 'งานเต็มเวลา (Entry-level)',
       salary: formData.salary || '20,000 - 30,000 บาท/เดือน',
       experienceLevel: 'เด็กจบใหม่ยินดีรับ',
-      matchRate: 95,
-      postedDate: 'วันนี้',
+      matchRate: editingJob?.matchRate || 95,
+      postedDate: editingJob?.postedDate || 'วันนี้',
       skillsRequired: skillsArray,
       qualifications: qualificationsArray,
-      description: formData.description || 'รายละเอียดตำแหน่งงาน'
+      description: formData.description || 'รายละเอียดตำแหน่งงาน',
+      employerId: currentUser?.id || editingJob?.employerId || null,
+      vacancies: parseInt(formData.vacancies, 10) || 1
     };
 
     try {
-      const res = await fetch('http://localhost:3001/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newJobPayload)
-      });
+      const res = editingJob
+        ? await updateJob(editingJob.id, newJobPayload)
+        : await fetch('http://localhost:3001/api/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newJobPayload)
+          });
 
-      if (res.ok) {
-        const data = await res.json();
-        const savedJob = data.job || newJobPayload;
+      const isOk = editingJob ? (res && res.success) : res.ok;
+
+      if (isOk) {
         setSuccessMessage(true);
         setTimeout(() => {
           setIsSubmitting(false);
-          if (onJobPosted) onJobPosted(savedJob);
+          if (onJobPosted) onJobPosted(newJobPayload);
           onClose();
         }, 1000);
       } else {
@@ -157,19 +178,21 @@ export default function PostJobModal({ onClose, onJobPosted }) {
           </div>
 
           <h2 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
-            ลงประกาศรับสมัครงานใหม่
+            {editingJob ? 'แก้ไขประกาศตำแหน่งงาน' : 'ลงประกาศรับสมัครงานใหม่'}
           </h2>
           <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, fontWeight: '500' }}>
-            เปิดรับผู้สมัครงานทุกสายอาชีพ รวดเร็ว สะดวก และเปิดให้ทุกคนมองเห็นทันที
+            {editingJob ? 'แก้ไขข้อมูลงานของคุณให้เป็นปัจจุบันและถูกต้องสูงสุด' : 'เปิดรับผู้สมัครงานทุกสายอาชีพ รวดเร็ว สะดวก และเปิดให้ทุกคนมองเห็นทันที'}
           </p>
         </div>
 
         {successMessage ? (
           <div style={{ textAlign: 'center', padding: '36px 20px', background: '#ecfdf5', borderRadius: '20px', border: '1px solid #a7f3d0' }}>
             <CheckCircle2 style={{ width: '52px', height: '52px', color: '#059669', margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#065f46', margin: '0 0 6px' }}>ลงประกาศรับสมัครงานสำเร็จ!</h3>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#065f46', margin: '0 0 6px' }}>
+              {editingJob ? 'แก้ไขประกาศงานสำเร็จ!' : 'ลงประกาศรับสมัครงานสำเร็จ!'}
+            </h3>
             <p style={{ fontSize: '0.85rem', color: '#047857', margin: 0 }}>
-              ประกาศตำแหน่งงานของคุณถูกแสดงให้ทุกคนมองเห็นในหน้าหลักเรียบร้อยแล้ว
+              {editingJob ? 'รายละเอียดตำแหน่งงานได้รับการแก้ไขและอัปเดตเรียบร้อยแล้ว' : 'ประกาศตำแหน่งงานของคุณถูกแสดงให้ทุกคนมองเห็นในหน้าหลักเรียบร้อยแล้ว'}
             </p>
           </div>
         ) : (
@@ -226,7 +249,7 @@ export default function PostJobModal({ onClose, onJobPosted }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                   จังหวัดสถานที่ทำงาน
@@ -247,12 +270,30 @@ export default function PostJobModal({ onClose, onJobPosted }) {
                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                   อัตราเงินเดือน
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.salary}
                   onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                  placeholder="เช่น 20,000 - 30,000 บาท/เดือน"
                   className="input-field"
+                  style={{ cursor: 'pointer', background: '#ffffff' }}
+                >
+                  {SALARY_OPTIONS.map((sal, idx) => (
+                    <option key={idx} value={sal}>{sal}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  รับ (คน)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.vacancies}
+                  onChange={(e) => setFormData({ ...formData, vacancies: e.target.value })}
+                  placeholder="1"
+                  className="input-field"
+                  required
                 />
               </div>
             </div>
@@ -305,7 +346,7 @@ export default function PostJobModal({ onClose, onJobPosted }) {
                   boxShadow: '0 4px 14px rgba(13, 148, 136, 0.35)'
                 }}
               >
-                {isSubmitting ? 'กำลังลงประกาศ...' : '✨ ลงประกาศรับสมัครงานทันที'}
+                {isSubmitting ? (editingJob ? 'กำลังแก้ไข...' : 'กำลังลงประกาศ...') : (editingJob ? '✨ บันทึกการแก้ไข' : '✨ ลงประกาศรับสมัครงานทันที')}
               </button>
             </div>
 

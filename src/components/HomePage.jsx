@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase } from 'lucide-react';
+import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
-import PostJobModal from './PostJobModal';
 
-export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob }) {
+export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob, onOpenPostJobModal, onOpenEditJobModal }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
-  const [showPostJobModal, setShowPostJobModal] = useState(false);
 
   const categories = [
     { id: 'all', label: '🌐 งานทุกประเภท' },
@@ -26,11 +24,20 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
     setSearchTerm('');
     setSelectedProvince('ทุกสถานที่ (ทั่วประเทศไทย)');
 
+    setEditingJob(null);
+
     if (onAddNewJob) {
       onAddNewJob(newJob);
     }
     if (onRefreshJobs) {
       onRefreshJobs();
+    }
+  };
+
+  const handleEditJobClick = (e, job) => {
+    e.stopPropagation();
+    if (onOpenEditJobModal) {
+      onOpenEditJobModal(job);
     }
   };
 
@@ -162,7 +169,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
           {/* Show Post Job Button ONLY FOR EMPLOYERS */}
           {currentUser && currentUser.role === 'employer' && (
             <button
-              onClick={() => setShowPostJobModal(true)}
+              onClick={onOpenPostJobModal}
               className="btn btn-accent"
               style={{ fontSize: '0.85rem', padding: '10px 18px', borderRadius: '12px' }}
             >
@@ -228,32 +235,53 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                       Match {job.matchRate || 95}%
                     </span>
 
-                    {/* Delete Job Button for Employer */}
-                    {currentUser && currentUser.role === 'employer' && (
-                      <button
-                        onClick={(e) => handleDeleteJobClick(e, job.id)}
-                        title="ปิดรับสมัคร / ลบประกาศงาน"
-                        style={{
-                          background: '#fef2f2',
-                          border: '1px solid #fecaca',
-                          color: '#ef4444',
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          fontSize: '0.7rem',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px'
-                        }}
-                      >
-                        <Trash2 style={{ width: '12px', height: '12px' }} /> ลบงาน
-                      </button>
+                    {/* Edit & Delete Job Buttons for Owner Employer */}
+                    {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          onClick={(e) => handleEditJobClick(e, job)}
+                          title="แก้ไขประกาศงาน"
+                          style={{
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            color: '#1d4ed8',
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            fontSize: '0.7rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          <Edit style={{ width: '12px', height: '12px' }} /> แก้ไข
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteJobClick(e, job.id)}
+                          title="ปิดรับสมัคร / ลบประกาศงาน"
+                          style={{
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            color: '#ef4444',
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            fontSize: '0.7rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          <Trash2 style={{ width: '12px', height: '12px' }} /> ลบ
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Badges Info */}
+                 {/* Badges Info */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
                   <span className="badge badge-primary">{job.type || 'งานเต็มเวลา'}</span>
                   <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: '600', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>
@@ -261,6 +289,9 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                   </span>
                   <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px' }}>
                     💰 {job.salary || 'ตามตกลง'}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: '700', background: '#eff6ff', padding: '2px 8px', borderRadius: '6px' }}>
+                    👥 รับ: {job.vacancies || 1} คน
                   </span>
                 </div>
 
@@ -291,14 +322,6 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
             </div>
           ))}
         </section>
-      )}
-
-      {/* Post Job Modal Popup */}
-      {showPostJobModal && (
-        <PostJobModal
-          onClose={() => setShowPostJobModal(false)}
-          onJobPosted={handleJobPostedSuccess}
-        />
       )}
 
     </div>
