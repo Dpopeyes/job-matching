@@ -8,9 +8,11 @@ import ProfilePage from './components/ProfilePage';
 import ApplicationsPage from './components/ApplicationsPage';
 import JobDetailPage from './components/JobDetailPage';
 import HotChat from './components/HotChat';
+import HelpCenterModal from './components/HelpCenterModal';
 import PostJobModal from './components/PostJobModal';
 import AdminDashboard from './components/AdminDashboard';
 import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications, fetchUserPortfolio } from './data/api';
+
 
 
 export default function App() {
@@ -338,6 +340,13 @@ export default function App() {
         />
       )}
 
+      {/* Grab-Style Help Center Floating Widget (Positioned right above HotChat floating button) */}
+      <HelpCenterModal 
+        currentUser={currentUser}
+        onNavigateAdmin={() => handleTabChange('admin')}
+        onNavigateProfile={() => handleTabChange('profile')}
+      />
+
       {/* HotChat Floating Widget */}
       <HotChat 
         currentUser={currentUser}
@@ -347,6 +356,7 @@ export default function App() {
         isOpen={isChatOpen}
         setIsOpen={setIsChatOpen}
       />
+
 
       {/* Footer */}
       <Footer />
