@@ -1,6 +1,6 @@
 /**
  * Dynamic Job & Skill Match Rate (%) Calculator
- * Calculates precise match rate (ranging from 10% to 99%) based on Applicant's Major/Field and Skills.
+ * Calculates precise match rate (ranging from 15% to 99%) based on Applicant's Major/Field and Skills.
  */
 export function calculateJobMatch(job, currentUser, userSkills = []) {
   // If not logged in or not an applicant, return standard job match rate
@@ -22,19 +22,26 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
 
   // Fallback skills for demo applicant user if skills array is empty in DB
   if (applicantSkillsList.length === 0) {
-    applicantSkillsList = ['react', 'javascript', 'html', 'css', 'คอมพิวเตอร์', 'การสื่อสาร', 'การทำงานเป็นทีม'];
+    applicantSkillsList = ['react', 'javascript', 'html', 'css', 'คอมพิวเตอร์', 'การสื่อสาร', 'การทำงานเป็นทีม', 'git'];
   }
 
   // 2. Extract Job Skills Required
   const jobSkillsList = (job.skillsRequired || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
 
-  // 3. Calculate Skill Match Ratio (0% to 100%)
+  // 3. Calculate Skill Match Ratio (0% to 100%) with Smart Token Matching
   const matchedSkills = [];
   if (jobSkillsList.length > 0) {
     jobSkillsList.forEach(jobSkill => {
-      const isMatched = applicantSkillsList.some(userSkill => 
-        userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
-      );
+      const isMatched = applicantSkillsList.some(userSkill => {
+        if (userSkill === jobSkill || userSkill.includes(jobSkill) || jobSkill.includes(userSkill)) {
+          return true;
+        }
+        // Split composite skills like "html/css" or "tailwind css"
+        const jobTokens = jobSkill.split(/[\/\s,]+/);
+        const userTokens = userSkill.split(/[\/\s,]+/);
+        return jobTokens.some(jt => jt.length >= 2 && userTokens.some(ut => ut.includes(jt) || jt.includes(ut)));
+      });
+      
       if (isMatched) {
         matchedSkills.push(jobSkill);
       }
@@ -48,7 +55,7 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
     // If job has no specified skills, check if description contains applicant skills
     const desc = (job.description || '').toLowerCase();
     const matchedInDesc = applicantSkillsList.filter(userSkill => desc.includes(userSkill));
-    skillRatio = matchedInDesc.length > 0 ? 0.6 : 0.2;
+    skillRatio = matchedInDesc.length > 0 ? 0.7 : 0.3;
   }
 
   const skillScore = skillRatio * 100;
@@ -60,8 +67,8 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
   const jobCat = (job.category || '').toLowerCase();
   const jobDesc = (job.description || '').toLowerCase();
 
-  if (major.includes('คอมพิวเตอร์') || major.includes('ไอที') || major.includes('เทคโนโลยี') || major.includes('ซอฟต์แวร์') || major.includes('software')) {
-    if (jobCat === 'dev' || jobCat === 'design' || jobTitle.includes('developer') || jobTitle.includes('coding') || jobTitle.includes('data') || jobTitle.includes('programmer') || jobTitle.includes('ux') || jobTitle.includes('ui') || jobTitle.includes('software')) {
+  if (major.includes('คอมพิวเตอร์') || major.includes('ไอที') || major.includes('เทคโนโลยี') || major.includes('ซอฟต์แวร์') || major.includes('software') || major.includes('วิทยการ')) {
+    if (jobCat === 'dev' || jobCat === 'design' || jobTitle.includes('developer') || jobTitle.includes('coding') || jobTitle.includes('data') || jobTitle.includes('programmer') || jobTitle.includes('ux') || jobTitle.includes('ui') || jobTitle.includes('software') || jobTitle.includes('frontend') || jobTitle.includes('backend')) {
       isMajorMatched = true;
     }
   } else if (major.includes('การตลาด') || major.includes('บริหาร') || major.includes('ธุรกิจ')) {

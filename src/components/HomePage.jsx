@@ -268,8 +268,8 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
           {processedJobs.map((job) => {
             const matchInfo = job._matchInfo || calculateJobMatch(job, currentUser, userSkills);
             const matchRate = matchInfo.matchRate;
-            const isHighMatch = matchRate >= 85;
-            const isMediumMatch = matchRate >= 70 && matchRate < 85;
+            const isHighMatch = matchRate >= 80;
+            const isMediumMatch = matchRate >= 50 && matchRate < 80;
 
             return (
             <div
@@ -320,11 +320,12 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                         ✨ ตรงสายงานของคุณ
                       </span>
                     )}
-                    {!matchInfo.isMajorMatched && matchRate < 60 && currentUser?.role === 'applicant' && (
+                    {!matchInfo.isMajorMatched && matchRate < 50 && currentUser?.role === 'applicant' && (
                       <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#c2410c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffedd5' }}>
                         ⚠️ ต่างสายงาน
                       </span>
                     )}
+
 
 
                     {/* Edit & Delete Job Buttons for Owner Employer */}
