@@ -1,5 +1,6 @@
 /**
- * Calculate dynamic job match rate (%) based on Applicant's Major/Field of Study and Skills
+ * Dynamic Job & Skill Match Rate (%) Calculator
+ * Calculates precise match rate (ranging from 10% to 99%) based on Applicant's Major/Field and Skills.
  */
 export function calculateJobMatch(job, currentUser, userSkills = []) {
   // If not logged in or not an applicant, return standard job match rate
@@ -27,7 +28,7 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
   // 2. Extract Job Skills Required
   const jobSkillsList = (job.skillsRequired || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
 
-  // 3. Calculate Skill Match Ratio
+  // 3. Calculate Skill Match Ratio (0% to 100%)
   const matchedSkills = [];
   if (jobSkillsList.length > 0) {
     jobSkillsList.forEach(jobSkill => {
@@ -40,13 +41,19 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
     });
   }
 
-  const skillRatio = jobSkillsList.length > 0 
-    ? matchedSkills.length / jobSkillsList.length 
-    : 0.75;
-  
+  let skillRatio = 0;
+  if (jobSkillsList.length > 0) {
+    skillRatio = matchedSkills.length / jobSkillsList.length;
+  } else {
+    // If job has no specified skills, check if description contains applicant skills
+    const desc = (job.description || '').toLowerCase();
+    const matchedInDesc = applicantSkillsList.filter(userSkill => desc.includes(userSkill));
+    skillRatio = matchedInDesc.length > 0 ? 0.6 : 0.2;
+  }
+
   const skillScore = skillRatio * 100;
 
-  // 4. Calculate Major / Field Match
+  // 4. Calculate Major / Field Match (15% to 95%)
   let isMajorMatched = false;
   const major = (currentUser.major || '').toLowerCase();
   const jobTitle = (job.title || '').toLowerCase();
@@ -81,13 +88,13 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
     isMajorMatched = majorTokens.some(token => token.length >= 3 && (jobTitle.includes(token) || jobDesc.includes(token)));
   }
 
-  const majorScore = isMajorMatched ? 95 : 62;
+  const majorScore = isMajorMatched ? 95 : 15;
 
   // 5. Final Weighted Match Rate (Skill Score 60%, Major Score 40%)
   let finalMatch = Math.round((skillScore * 0.6) + (majorScore * 0.4));
   
-  // Clamped bounds for realistic display
-  finalMatch = Math.max(55, Math.min(99, finalMatch));
+  // Allow full dynamic range down to 15% - 99%
+  finalMatch = Math.max(15, Math.min(99, finalMatch));
 
   return {
     matchRate: finalMatch,

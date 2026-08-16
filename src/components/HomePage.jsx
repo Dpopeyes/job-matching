@@ -298,16 +298,15 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'flex-end' }}>
-
                     <span
                       style={{
                         fontSize: '0.72rem',
                         fontWeight: '800',
                         padding: '3px 9px',
                         borderRadius: '999px',
-                        background: isHighMatch ? '#dcfce7' : isMediumMatch ? '#eff6ff' : '#f1f5f9',
-                        color: isHighMatch ? '#15803d' : isMediumMatch ? '#1d4ed8' : '#475569',
-                        border: isHighMatch ? '1px solid #86efac' : isMediumMatch ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+                        background: isHighMatch ? '#dcfce7' : isMediumMatch ? '#eff6ff' : '#fff7ed',
+                        color: isHighMatch ? '#15803d' : isMediumMatch ? '#1d4ed8' : '#c2410c',
+                        border: isHighMatch ? '1px solid #86efac' : isMediumMatch ? '1px solid #bfdbfe' : '1px solid #ffedd5',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px'
@@ -321,6 +320,12 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                         ✨ ตรงสายงานของคุณ
                       </span>
                     )}
+                    {!matchInfo.isMajorMatched && matchRate < 60 && currentUser?.role === 'applicant' && (
+                      <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#c2410c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffedd5' }}>
+                        ⚠️ ต่างสายงาน
+                      </span>
+                    )}
+
 
                     {/* Edit & Delete Job Buttons for Owner Employer */}
                     {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
