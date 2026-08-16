@@ -152,10 +152,25 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
   }
 
   // Render Specialized Admin Profile View for Admin Role
-  if (profileData.role === 'admin') {
+  const isAdmin = profileData?.role === 'admin' || profileData?.id === 'admin-001' || user?.role === 'admin' || user?.id === 'admin-001';
+
+  if (isAdmin) {
+    const adminUser = {
+      id: 'admin-001',
+      name: profileData?.name || user?.name || 'แอดมินระบบ BlueHouse',
+      email: profileData?.email || user?.email || 'admin@bluehouse.com',
+      phone: profileData?.phone || user?.phone || '02-999-8888',
+      avatar: profileData?.avatar || user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
+      bio: profileData?.bio || user?.bio || 'ผู้ดูแลระบบกลางสำหรับตรวจสอบอนุมัติประกาศงาน ควบคุมคุณภาพเนื้อหา ดูแลบัญชีสมาชิกผู้สมัครงานและนายจ้างในแพลตฟอร์ม BlueHouse Jobs',
+      ...user,
+      ...profileData,
+      role: 'admin'
+    };
+
+
     return (
       <AdminProfileView 
-        user={profileData} 
+        user={adminUser} 
         onUpdateUser={(updated) => {
           setProfileData(updated);
           if (onUpdateUser) onUpdateUser(updated);
@@ -165,6 +180,7 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
       />
     );
   }
+
 
   const isEmployer = profileData.role === 'employer';
 

@@ -292,7 +292,7 @@ export default function App() {
 
         {(activeTab === 'profile' || activeTab === 'view-profile') && (
           <ProfilePage 
-            user={activeTab === 'view-profile' ? { id: viewProfileId } : currentUser} 
+            user={activeTab === 'view-profile' ? (viewProfileId === currentUser?.id ? currentUser : { id: viewProfileId }) : currentUser} 
             onUpdateUser={(updatedUser) => {
               setCurrentUser(updatedUser);
               localStorage.setItem('app_current_user', JSON.stringify(updatedUser));
@@ -302,6 +302,7 @@ export default function App() {
             onNavigateHome={() => handleTabChange('home')}
           />
         )}
+
 
 
         {activeTab === 'applications' && (
