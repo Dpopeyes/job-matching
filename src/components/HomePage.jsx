@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit, Check } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
 import { calculateJobMatch } from '../utils/matching';
+import { translations } from '../utils/i18n';
 
-export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkills = [], onRefreshJobs, onAddNewJob, onDeleteJob, onOpenPostJobModal, onOpenEditJobModal }) {
+export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkills = [], onRefreshJobs, onAddNewJob, onDeleteJob, onOpenPostJobModal, onOpenEditJobModal, lang = 'th' }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
   const [sortBy, setSortBy] = useState(currentUser?.role === 'applicant' ? 'match' : 'newest');
+
+  const t = translations[lang] || translations.th;
+
 
 
   const categories = [
@@ -124,11 +128,11 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
 
 
           <h1 className="hero-title">
-            ค้นหางานที่ใช่ <span style={{ color: '#2563eb' }}>สมัครงานได้ทุกสาขาอาชีพ</span>
+            {t.heroTitlePrefix} <span style={{ color: '#2563eb' }}>{t.heroTitleSuffix}</span>
           </h1>
 
           <p className="hero-subtitle">
-            ค้นหาตำแหน่งงานจากบริษัทชั้นนำ คัดกรองทักษะ (Skill-based) ใช้งานง่าย รวดเร็ว
+            {t.heroSubtitle}
           </p>
 
           {/* Clean Floating Search Bar */}
@@ -139,7 +143,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ค้นหาตำแหน่งงาน, ชื่อบริษัท หรือ ทักษะ..."
+                placeholder={t.searchPlaceholder}
               />
             </div>
 
@@ -151,15 +155,16 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
               >
                 {THAI_PROVINCES.map((prov, idx) => (
                   <option key={idx} value={prov}>
-                    📍 {prov}
+                    📍 {prov === 'ทุกสถานที่ (ทั่วประเทศไทย)' ? t.allLocations : prov}
                   </option>
                 ))}
               </select>
             </div>
 
             <button className="btn btn-primary" style={{ padding: '12px 24px' }}>
-              <Search style={{ width: '16px', height: '16px' }} /> ค้นหา
+              <Search style={{ width: '16px', height: '16px' }} /> {t.searchButton}
             </button>
+
           </div>
 
         </div>

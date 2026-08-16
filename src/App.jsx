@@ -252,7 +252,9 @@ export default function App() {
             onSelectJob={handleJobSelect} 
             currentUser={currentUser} 
             userSkills={currentUserSkills}
+            lang={lang}
             onNavigateToProfile={() => handleTabChange('profile')}
+
             onRefreshJobs={loadJobsData}
             onAddNewJob={handleAddNewJob}
             onDeleteJob={handleDeleteJob}
