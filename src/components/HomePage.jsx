@@ -297,38 +297,40 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <span
-                      style={{
-                        fontSize: '0.72rem',
-                        fontWeight: '800',
-                        padding: '3px 9px',
-                        borderRadius: '999px',
-                        background: isHighMatch ? '#dcfce7' : isMediumMatch ? '#eff6ff' : '#fff7ed',
-                        color: isHighMatch ? '#15803d' : isMediumMatch ? '#1d4ed8' : '#c2410c',
-                        border: isHighMatch ? '1px solid #86efac' : isMediumMatch ? '1px solid #bfdbfe' : '1px solid #ffedd5',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      {isHighMatch && <Sparkles style={{ width: '12px', height: '12px' }} />}
-                      Match {matchRate}%
-                    </span>
-                    {matchInfo.isMajorMatched && currentUser?.role === 'applicant' && (
-                      <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
-                        ✨ ตรงสายงานของคุณ
+                  {currentUser?.role === 'applicant' && (
+                    <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: '800',
+                          padding: '3px 9px',
+                          borderRadius: '999px',
+                          background: isHighMatch ? '#dcfce7' : isMediumMatch ? '#eff6ff' : '#fff7ed',
+                          color: isHighMatch ? '#15803d' : isMediumMatch ? '#1d4ed8' : '#c2410c',
+                          border: isHighMatch ? '1px solid #86efac' : isMediumMatch ? '1px solid #bfdbfe' : '1px solid #ffedd5',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {isHighMatch && <Sparkles style={{ width: '12px', height: '12px' }} />}
+                        Match {matchRate}%
                       </span>
-                    )}
-                    {!matchInfo.isMajorMatched && matchRate < 50 && currentUser?.role === 'applicant' && (
-                      <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#c2410c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffedd5' }}>
-                        ⚠️ ต่างสายงาน
-                      </span>
-                    )}
+                      {matchInfo.isMajorMatched && (
+                        <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                          ✨ ตรงสายงานของคุณ
+                        </span>
+                      )}
+                      {!matchInfo.isMajorMatched && matchRate < 50 && (
+                        <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#c2410c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffedd5' }}>
+                          ⚠️ ต่างสายงาน
+                        </span>
+                      )}
+                    </div>
+                  )}
 
+                  {/* Edit & Delete Job Buttons for Owner Employer */}
 
-
-                    {/* Edit & Delete Job Buttons for Owner Employer */}
                     {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
                         <button
@@ -372,7 +374,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                       </div>
                     )}
                   </div>
-                </div>
+
 
                 {/* Badges Info */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
@@ -393,13 +395,14 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                   {job.description}
                 </p>
 
-                {/* Skills required with highlight */}
+                {/* Skills required with highlight for applicants */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                   {job.skillsRequired && job.skillsRequired.map((skill, idx) => {
                     const skillStr = typeof skill === 'string' ? skill : skill.name;
-                    const isMatched = matchInfo.matchedSkills.some(m => 
+                    const isMatched = currentUser?.role === 'applicant' && matchInfo.matchedSkills.some(m => 
                       m.toLowerCase().includes(skillStr.toLowerCase()) || skillStr.toLowerCase().includes(m.toLowerCase())
                     );
+
 
                     return (
                       <span 

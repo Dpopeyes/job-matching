@@ -76,28 +76,33 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
                 <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                   {job.title}
                 </h1>
-                <span 
-                  style={{
-                    fontSize: '0.78rem',
-                    fontWeight: '800',
-                    padding: '4px 12px',
-                    borderRadius: '999px',
-                    background: isHighMatch ? '#dcfce7' : '#eff6ff',
-                    color: isHighMatch ? '#15803d' : '#1d4ed8',
-                    border: isHighMatch ? '1px solid #86efac' : '1px solid #bfdbfe',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Sparkles style={{ width: '14px', height: '14px' }} /> Match {matchRate}%
-                </span>
-                {matchInfo.isMajorMatched && currentUser?.role === 'applicant' && (
-                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                    ✨ ตรงกับสาขาวิชาของคุณ
-                  </span>
+                {currentUser?.role === 'applicant' && (
+                  <>
+                    <span 
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: '800',
+                        padding: '4px 12px',
+                        borderRadius: '999px',
+                        background: isHighMatch ? '#dcfce7' : '#eff6ff',
+                        color: isHighMatch ? '#15803d' : '#1d4ed8',
+                        border: isHighMatch ? '1px solid #86efac' : '1px solid #bfdbfe',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Sparkles style={{ width: '14px', height: '14px' }} /> Match {matchRate}%
+                    </span>
+                    {matchInfo.isMajorMatched && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                        ✨ ตรงกับสาขาวิชาของคุณ
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
+
 
               <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Building style={{ width: '16px', height: '16px', color: '#2563eb' }} /> {job.company}
