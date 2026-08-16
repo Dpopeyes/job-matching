@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck, Bot } from 'lucide-react';
 import { calculateJobMatch } from '../utils/matching';
+import AIScreeningBotModal from './AIScreeningBotModal';
 
 export default function JobDetailPage({ job, currentUser, userSkills = [], onBack, onApplySuccess, onEditJob, onDeleteJob }) {
 
@@ -8,6 +9,8 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appliedSuccess, setAppliedSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isAIBotOpen, setIsAIBotOpen] = useState(false);
+
 
   const handleEdit = () => {
     if (onEditJob) onEditJob(job);
@@ -365,6 +368,31 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
                   {isSubmitting ? 'กำลังส่งข้อมูล...' : <><Send style={{ width: '16px', height: '16px' }} /> ยืนยันยื่นใบสมัคร</>}
                 </button>
 
+                <div style={{ textAlign: 'center', margin: '4px 0', fontSize: '0.75rem', color: '#94a3b8' }}>— หรือ —</div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAIBotOpen(true)}
+                  style={{
+                    width: '100%',
+                    padding: '11px 16px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontSize: '0.85rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(31, 27, 75, 0.25)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Bot style={{ width: '18px', height: '18px', color: '#a5b4fc' }} /> 🤖 ลองคุยกับ AI Screening Bot
+                </button>
               </form>
             )}
 
@@ -373,6 +401,15 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
         )}
 
       </div>
+
+      {/* AI Screening Bot Modal */}
+      <AIScreeningBotModal
+        isOpen={isAIBotOpen}
+        onClose={() => setIsAIBotOpen(false)}
+        job={job}
+        currentUser={currentUser}
+      />
+
 
     </div>
   );
