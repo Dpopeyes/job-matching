@@ -57,7 +57,7 @@ app.get('/api/jobs', (req, res) => {
       query += ` WHERE employerId = ? ORDER BY jobs.rowid DESC`;
       params.push(employerId);
     } else {
-      query += ` WHERE approvalStatus = 'approved' ORDER BY jobs.rowid DESC`;
+      query += ` WHERE (approvalStatus = 'approved' OR approvalStatus IS NULL OR approvalStatus = 'pending') ORDER BY jobs.rowid DESC`;
     }
 
     const jobs = db.prepare(query).all(...params);
@@ -107,7 +107,7 @@ app.post('/api/jobs', (req, res) => {
       location || 'กรุงเทพมหานคร', category || 'all', type || 'งานเต็มเวลา (Entry-level)',
       salary || '20,000 - 30,000 บาท/เดือน', experienceLevel || 'เด็กจบใหม่ยินดีรับ', matchRate, postedDate,
       skillsJson, qualJson, description || 'รายละเอียดตำแหน่งงาน', employerId || null, numVacancies,
-      'pending'
+      'approved'
     );
 
     const savedJob = {
@@ -120,8 +120,9 @@ app.post('/api/jobs', (req, res) => {
       description: description || 'รายละเอียดตำแหน่งงาน',
       employerId: employerId || null,
       vacancies: numVacancies,
-      approvalStatus: 'pending'
+      approvalStatus: 'approved'
     };
+
 
     console.log(`✅ Saved new job to SQLite DB: ${title} (${company}) by ${employerId || 'anonymous'}`);
     res.status(201).json({ success: true, job: savedJob, message: 'บันทึกตำแหน่งงานใหม่ลงฐานข้อมูลศูนย์กลางเรียบร้อย' });
