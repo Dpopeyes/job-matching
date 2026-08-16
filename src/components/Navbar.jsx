@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Briefcase, User, LogIn, UserPlus, FileCheck, Users, LogOut, ShieldCheck } from 'lucide-react';
+import { Briefcase, User, LogIn, UserPlus, FileCheck, Users, LogOut, ShieldCheck, Globe } from 'lucide-react';
+import { translations } from '../utils/i18n';
 
-
-export default function Navbar({ activeTab, setActiveTab, currentUser, setCurrentUser }) {
+export default function Navbar({ activeTab, setActiveTab, currentUser, setCurrentUser, lang = 'th', setLang }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const t = translations[lang] || translations.th;
 
   const handleNavClick = (tab) => {
     setActiveTab(tab);
@@ -12,6 +14,11 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
   };
 
   const isEmployer = currentUser?.role === 'employer';
+
+  const toggleLang = () => {
+    if (setLang) setLang(lang === 'th' ? 'en' : 'th');
+  };
+
 
   return (
     <nav className="navbar-fixed">
@@ -60,7 +67,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
               className={`nav-btn ${activeTab === 'home' ? 'active' : ''}`}
             >
               <Briefcase style={{ width: '16px', height: '16px' }} />
-              หน้าหลัก / ค้นหางาน
+              {t.homeNav}
             </button>
 
             {currentUser && (
@@ -71,7 +78,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                   style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed', fontWeight: '800' }}
                 >
                   <ShieldCheck style={{ width: '16px', height: '16px', color: '#7c3aed' }} />
-                  🛡️ ควบคุมโพสต์ & แชท
+                  🛡️ {t.adminDashboardNav}
                 </button>
               ) : (
                 <button
@@ -79,9 +86,9 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                   className={`nav-btn ${activeTab === 'applications' ? 'active' : ''}`}
                 >
                   {isEmployer ? (
-                    <><Users style={{ width: '16px', height: '16px', color: '#0d9488' }} /> รายชื่อผู้สมัครงานที่ยื่นเข้ามา</>
+                    <><Users style={{ width: '16px', height: '16px', color: '#0d9488' }} /> {t.applicantListNav}</>
                   ) : (
-                    <><FileCheck style={{ width: '16px', height: '16px' }} /> สถานะการสมัครงาน</>
+                    <><FileCheck style={{ width: '16px', height: '16px' }} /> {t.appStatusNav}</>
                   )}
                 </button>
               )
@@ -93,15 +100,40 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                 className={`nav-btn ${activeTab === 'profile' ? 'active' : ''}`}
               >
                 <User style={{ width: '16px', height: '16px' }} />
-                {isEmployer ? 'โปรไฟล์องค์กรนายจ้าง' : 'โปรไฟล์ & ผลงาน'}
+                {isEmployer ? t.employerProfileNav : t.profileNav}
               </button>
             )}
-
 
           </div>
 
           {/* User Auth Section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative' }}>
+            
+            {/* Language Switcher Toggle Button (TH 🇹🇭 / EN 🇬🇧) */}
+            <button
+              onClick={toggleLang}
+              title="คลิกเพื่อสลับภาษา / Switch Language (TH / EN)"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '999px',
+                background: lang === 'th' ? '#eff6ff' : '#f0fdf4',
+                border: lang === 'th' ? '1px solid #bfdbfe' : '1px solid #bbf7d0',
+                color: lang === 'th' ? '#1d4ed8' : '#166534',
+                fontSize: '0.8rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                userSelect: 'none'
+              }}
+            >
+              <Globe style={{ width: '15px', height: '15px' }} />
+              <span>{lang === 'th' ? '🇹🇭 TH' : '🇬🇧 EN'}</span>
+            </button>
+
             {currentUser ? (
               <>
                 {/* Clicking badge/avatar toggles the dropdown */}

@@ -18,6 +18,13 @@ import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplicatio
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [viewProfileId, setViewProfileId] = useState(null);
+  const [lang, setLang] = useState(() => localStorage.getItem('app_lang') || 'th');
+
+  const handleSetLang = (newLang) => {
+    setLang(newLang);
+    localStorage.setItem('app_lang', newLang);
+  };
+
 
   // Handle URL Routing for /profile/:userId dynamically
   useEffect(() => {
@@ -232,7 +239,10 @@ export default function App() {
         setActiveTab={handleTabChange} 
         currentUser={currentUser} 
         setCurrentUser={handleLogout} 
+        lang={lang}
+        setLang={handleSetLang}
       />
+
 
       {/* Main Views */}
       <main className="app-container flex-1 pt-6 pb-12">
