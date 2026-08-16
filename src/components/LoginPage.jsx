@@ -126,93 +126,20 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
             {isLoading ? 'กำลังเข้าสู่ระบบ...' : <><LogIn style={{ width: '16px', height: '16px' }} /> เข้าสู่ระบบ</>}
           </button>
 
-          {/* Quick Demo Login Buttons */}
-          <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed #e2e8f0' }}>
-            <div style={{ fontSize: '0.725rem', fontWeight: '700', color: '#64748b', marginBottom: '8px', textAlign: 'center' }}>
-              ⚡ คลิกเข้าสู่ระบบทดสอบด่วนตามบทบาท:
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsLoading(true);
-                  const res = await loginUser('hr@ttt.ac.th', '123456');
-                  setIsLoading(false);
-                  if (res?.success) onLoginSuccess(res.user);
-                }}
-                style={{
-                  fontSize: '0.78rem',
-                  padding: '8px 12px',
-                  background: '#f0fdfa',
-                  border: '1px solid #99f6e4',
-                  color: '#0d9488',
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                🏢 เข้าสู่ระบบในฐานะ "นายจ้าง / HR" (Blue gup)
-              </button>
-              
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsLoading(true);
-                  const res = await loginUser('pounzazakub@gmail.com', '123456');
-                  setIsLoading(false);
-                  if (res?.success) onLoginSuccess(res.user);
-                }}
-                style={{
-                  fontSize: '0.78rem',
-                  padding: '8px 12px',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  color: '#2563eb',
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                🎓 เข้าสู่ระบบในฐานะ "ผู้สมัครงาน" (ชยธร)
-              </button>
-
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsLoading(true);
-                  const res = await loginUser('admin@bluehouse.com', 'admin1234');
-                  setIsLoading(false);
-                  if (res?.success) onLoginSuccess(res.user);
-                }}
-                style={{
-                  fontSize: '0.78rem',
-                  padding: '8px 12px',
-                  background: '#f5f3ff',
-                  border: '1px solid #ddd6fe',
-                  color: '#7c3aed',
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                🛡️ เข้าสู่ระบบในฐานะ "แอดมิน" (Admin)
-              </button>
-            </div>
-          </div>
+          {/* Face KYC Login Button */}
+          <button
+            type="button"
+            onClick={handleFaceKYCLogin}
+            disabled={isFaceKYCing}
+            className="btn btn-accent"
+            style={{ width: '100%', padding: '10px', fontSize: '0.85rem', borderRadius: '12px' }}
+          >
+            <ScanFace style={{ width: '16px', height: '16px' }} />
+            {isFaceKYCing ? 'กำลังสแกนใบหน้า...' : 'สแกนใบหน้าเข้าสู่ระบบ (Face KYC)'}
+          </button>
 
         </form>
+
 
 
         {/* Switch to Register */}
