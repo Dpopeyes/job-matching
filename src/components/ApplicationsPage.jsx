@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileCheck, Building, Calendar, Users, Mail, Phone, CheckCircle2, User, Sparkles, MessageSquare, Clock, Send, X, FolderGit2, Globe, ExternalLink, QrCode } from 'lucide-react';
+import { FileCheck, Building, Calendar, Users, Mail, Phone, CheckCircle2, User, Sparkles, MessageSquare, Clock, Send, X, FolderGit2, Globe, ExternalLink, QrCode, Download } from 'lucide-react';
 import { updateApplicationStatus, fetchMessages, sendMessage, fetchUserPortfolio } from '../data/api';
 import QRCodeModal from './QRCodeModal';
 
@@ -13,15 +13,117 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
   const messagesEndRef = useRef(null);
 
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
+  const [selectedPortfolioApp, setSelectedPortfolioApp] = useState(null);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [qrCodeUser, setQrCodeUser] = useState(null);
   const [schedulingApp, setSchedulingApp] = useState(null);
   const [interviewDate, setInterviewDate] = useState('');
   const [interviewNote, setInterviewNote] = useState('');
 
-  const handleViewPortfolio = async (userId) => {
+  // Handle PDF Resume Download for Employers
+  const handleDownloadResume = async (app, existingPortfolio = null) => {
+    let portData = existingPortfolio;
+    if (!portData) {
+      setIsLoadingPortfolio(true);
+      portData = await fetchUserPortfolio(app.userId);
+      setIsLoadingPortfolio(false);
+    }
+
+    const user = portData?.user || {
+      name: app.applicantName || 'ผู้สมัครงาน',
+      email: app.applicantEmail || 'user@example.com',
+      phone: app.applicantPhone || 'ไม่ระบุ',
+      university: 'มหาวิทยาลัย',
+      major: 'สาขาวิชา'
+    };
+
+    const skills = portData?.skills || [];
+    const projects = portData?.projects || [];
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('กรุณาอนุญาตให้เปิดเบราว์เซอร์สำหรับดาวน์โหลด PDF Resume');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Resume - ${user.name} | BlueHouse Jobs</title>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; background: #ffffff; }
+          .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+          .name { font-size: 26px; font-weight: 800; color: #1e3a8a; margin: 0; }
+          .sub { font-size: 15px; color: #475569; margin-top: 4px; }
+          .contact { font-size: 13px; color: #64748b; margin-top: 8px; }
+          .section-title { font-size: 16px; font-weight: 800; color: #1e40af; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 24px 0 12px; }
+          .badge { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; margin: 3px; border: 1px solid #bfdbfe; }
+          .project-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
+          .footer { margin-top: 40px; border-top: 1px solid #cbd5e1; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center; }
+          @media print {
+            body { padding: 20px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 class="name">${user.name}</h1>
+            <div class="sub">🎓 ${user.university || 'มหาวิทยาลัย'} — ${user.major || 'สาขาวิชา'}</div>
+            <div class="contact">📧 อีเมล: ${user.email} | 📞 เบอร์โทร: ${user.phone || 'ไม่ระบุ'}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="background: #ecfdf5; color: #047857; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid #a7f3d0; display: inline-block;">
+              ✓ Verified Candidate
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">สมัครตำแหน่ง: ${app.jobTitle || 'ตำแหน่งงานที่สนใจ'}</div>
+          </div>
+        </div>
+
+        ${app.coverNote ? `
+          <div class="section-title">💬 ข้อความแนะนำตัวถึง HR</div>
+          <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #334155; font-style: italic;">
+            "${app.coverNote}"
+          </div>
+        ` : ''}
+
+        <div class="section-title">🛠️ ทักษะและความเชี่ยวชาญ (Skills)</div>
+        <div>
+          ${skills.length > 0 ? skills.map(s => `<span class="badge">${typeof s === 'string' ? s : s.name} (${s.level || 'Intermediate'})</span>`).join('') : '<span style="color: #64748b; font-size: 13px;">ทักษะเฉพาะสายงานและการทำงานร่วมกัน</span>'}
+        </div>
+
+        <div class="section-title">💼 ผลงานและโปรเจกต์ (Portfolio & Projects)</div>
+        ${projects.length > 0 ? projects.map(p => `
+          <div class="project-card">
+            <div style="font-weight: 800; font-size: 14px; color: #0f172a;">${p.title}</div>
+            <div style="font-size: 12px; color: #475569; margin: 4px 0;">${p.description || ''}</div>
+            <div style="font-size: 11px; color: #2563eb; font-weight: 700;">แท็ก: ${p.tags || 'React, Web Application'}</div>
+          </div>
+        `).join('') : '<div style="color: #64748b; font-size: 13px;">มีผลงานและโปรไฟล์ดิจิทัลพร้อมตรวจสอบในระบบ BlueHouse Jobs</div>'}
+
+        <div class="footer">
+          📄 เอกสารประวัติผู้สมัครรับรองโดยระบบ BlueHouse Jobs Smart Matching Platform — พิมพ์เมื่อ ${new Date().toLocaleDateString('th-TH')}
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleViewPortfolio = async (app) => {
     setIsLoadingPortfolio(true);
-    const port = await fetchUserPortfolio(userId);
+    setSelectedPortfolioApp(app);
+    const port = await fetchUserPortfolio(app.userId);
     setIsLoadingPortfolio(false);
     if (port) {
       setSelectedPortfolio(port);
@@ -29,6 +131,7 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
       alert('ไม่สามารถดึงข้อมูลพอร์ตโฟลิโอได้');
     }
   };
+
 
   const handleShowQRCode = async (userId) => {
     setIsLoadingPortfolio(true);
@@ -262,7 +365,7 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                     <MessageSquare style={{ width: '13px', height: '13px' }} /> พูดคุยแชทโต้ตอบ
                   </button>
                   <button
-                    onClick={() => handleViewPortfolio(app.userId)}
+                    onClick={() => handleViewPortfolio(app)}
                     className="btn btn-secondary"
                     style={{ 
                       fontSize: '0.75rem', 
@@ -278,6 +381,25 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                     }}
                   >
                     <FolderGit2 style={{ width: '13px', height: '13px' }} /> ดูพอร์ต/ผลงาน
+                  </button>
+                  <button
+                    onClick={() => handleDownloadResume(app)}
+                    className="btn btn-secondary"
+                    style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '6px 14px', 
+                      background: '#ecfdf5', 
+                      border: '1px solid #a7f3d0', 
+                      color: '#047857',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '700'
+                    }}
+                  >
+                    <Download style={{ width: '13px', height: '13px' }} /> ดาวน์โหลด Resume (PDF)
                   </button>
                   <button
                     onClick={() => handleShowQRCode(app.userId)}
@@ -298,6 +420,7 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                     <QrCode style={{ width: '13px', height: '13px' }} /> คิวอาร์สแกน
                   </button>
                 </div>
+
 
               </div>
             ))}
@@ -600,25 +723,50 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
                   ข้อมูลการศึกษาและคลังผลงานโครงการจริงของผู้สมัครงาน
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedPortfolio(null)}
-                style={{ 
-                  width: '38px', 
-                  height: '38px', 
-                  borderRadius: '50%', 
-                  background: '#f1f5f9', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  color: '#64748b',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <X style={{ width: '18px', height: '18px' }} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+                {isEmployer && (
+                  <button
+                    onClick={() => handleDownloadResume(selectedPortfolioApp || { userId: selectedPortfolio.user?.id }, selectedPortfolio)}
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: '800',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #059669, #047857)',
+                      color: '#ffffff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)'
+                    }}
+                  >
+                    <Download style={{ width: '15px', height: '15px' }} /> 📥 ดาวน์โหลด Resume (PDF)
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedPortfolio(null)}
+                  style={{ 
+                    width: '38px', 
+                    height: '38px', 
+                    borderRadius: '50%', 
+                    background: '#f1f5f9', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    color: '#64748b',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <X style={{ width: '18px', height: '18px' }} />
+                </button>
+              </div>
             </div>
+
 
             {/* Modal Body */}
             <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', background: '#f8fafc' }}>
