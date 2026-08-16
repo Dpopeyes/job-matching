@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Briefcase, User, LogIn, UserPlus, FileCheck, Users, LogOut, ShieldCheck } from 'lucide-react';
+import { loginUser } from '../data/api';
 
 export default function Navbar({ activeTab, setActiveTab, currentUser, setCurrentUser }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -239,6 +240,52 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                       </div>
                     </div>
 
+                    {/* Quick Role Switcher */}
+
+                    <div style={{ paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>
+                        ⚡ สลับสิทธิ์ผู้ใช้งานด่วน:
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {currentUser.role !== 'employer' && (
+                          <button
+                            onClick={async () => {
+                              setShowDropdown(false);
+                              const res = await loginUser('hr@ttt.ac.th', '123456');
+                              if (res?.success) setCurrentUser(res.user);
+                            }}
+                            style={{ fontSize: '0.72rem', padding: '6px 10px', background: '#f0fdfa', border: '1px solid #99f6e4', color: '#0d9488', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}
+                          >
+                            🏢 สลับเป็นบทบาท "นายจ้าง" (Blue gup)
+                          </button>
+                        )}
+                        {currentUser.role !== 'applicant' && (
+                          <button
+                            onClick={async () => {
+                              setShowDropdown(false);
+                              const res = await loginUser('pounzazakub@gmail.com', '123456');
+                              if (res?.success) setCurrentUser(res.user);
+                            }}
+                            style={{ fontSize: '0.72rem', padding: '6px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}
+                          >
+                            🎓 สลับเป็นบทบาท "ผู้สมัครงาน" (ชยธร)
+                          </button>
+                        )}
+                        {currentUser.role !== 'admin' && (
+                          <button
+                            onClick={async () => {
+                              setShowDropdown(false);
+                              const res = await loginUser('admin@bluehouse.com', 'admin1234');
+                              if (res?.success) setCurrentUser(res.user);
+                            }}
+                            style={{ fontSize: '0.72rem', padding: '6px 10px', background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', textAlign: 'left' }}
+                          >
+                            🛡️ สลับเป็นบทบาท "แอดมิน" (Admin)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Log Out Button */}
                     <button 
                       onClick={() => {
@@ -274,6 +321,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                     </button>
                   </div>
                 )}
+
               </>
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
