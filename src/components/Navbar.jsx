@@ -25,7 +25,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
             <div className="brand-logo-box-mini">
               <img 
                 src="/logo.jpg" 
-                alt="FreshGrad Jobs Pink Owl Logo JPG" 
+                alt="BlueHouse Jobs Pink Owl Logo JPG" 
                 style={{ 
                   width: '46px', 
                   height: '46px', 
@@ -45,7 +45,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
                     lineHeight: 1
                   }}
                 >
-                  FreshGrad Jobs
+                  BlueHouse Jobs
                 </span>
               </div>
               <p style={{ fontSize: '0.725rem', color: '#64748b', margin: '2px 0 0' }}>ศูนย์รวมตำแหน่งงานและลงประกาศงานทุกประเภท</p>

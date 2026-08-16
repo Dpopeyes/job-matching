@@ -55,13 +55,13 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
     if (!job || !job.title) return false;
 
     // 1. Search filter
-    const matchesSearch = 
+    const matchesSearch =
       !searchTerm ||
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (job.skillsRequired && job.skillsRequired.some(s => typeof s === 'string' && s.toLowerCase().includes(searchTerm.toLowerCase())));
-    
+
     // 2. Category filter
     let matchesCategory = true;
     if (selectedCategory !== 'all') {
@@ -94,12 +94,12 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
 
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
-      
+
       {/* 2K High-Res Hero Banner Image */}
       <div style={{ marginBottom: '28px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)', border: '1px solid #e2e8f0' }}>
-        <img 
-          src="/cover.jpg" 
-          alt="FreshGrad Jobs 2K Cover Banner" 
+        <img
+          src="/cover.jpg"
+          alt="BlueHouse Jobs 2K Cover Banner"
           style={{ width: '100%', height: 'auto', maxHeight: '340px', objectFit: 'cover', display: 'block' }}
         />
       </div>
@@ -107,10 +107,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
       {/* Hero Banner Section */}
       <section className="hero-box">
         <div style={{ maxWidth: '850px', margin: '0 auto', textAlign: 'center' }}>
-          
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#eff6ff', color: '#2563eb', padding: '6px 16px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: '700', marginBottom: '16px' }}>
-            <Sparkles style={{ width: '15px', height: '15px' }} /> ศูนย์รวมตำแหน่งงานคุณภาพทุกประเภททั่วไทย
-          </div>
+
 
           <h1 className="hero-title">
             ค้นหางานที่ใช่ <span style={{ color: '#2563eb' }}>สมัครงานได้ทุกสาขาอาชีพ</span>
@@ -205,8 +202,8 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
       ) : (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
           {filteredJobs.map((job) => (
-            <div 
-              key={job.id} 
+            <div
+              key={job.id}
               className="clean-card"
               style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
               onClick={() => onSelectJob(job)}
@@ -215,9 +212,9 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                 {/* Header Info */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img 
-                      src={job.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60'} 
-                      alt={job.company} 
+                    <img
+                      src={job.logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60'}
+                      alt={job.company}
                       style={{ width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
                     />
                     <div>
@@ -281,7 +278,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                   </div>
                 </div>
 
-                 {/* Badges Info */}
+                {/* Badges Info */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
                   <span className="badge badge-primary">{job.type || 'งานเต็มเวลา'}</span>
                   <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: '600', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px' }}>

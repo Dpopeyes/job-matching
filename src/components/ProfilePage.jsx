@@ -135,10 +135,10 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
 
   useEffect(() => {
     if (profileData?.name) {
-      document.title = `${profileData.name} - Digital Profile | FreshGrad Jobs`;
+      document.title = `${profileData.name} - Digital Profile | BlueHouse Jobs`;
     }
     return () => {
-      document.title = "FreshGrad Jobs - ศูนย์รวมตำแหน่งงานคุณภาพ";
+      document.title = "BlueHouse Jobs - ศูนย์รวมตำแหน่งงานคุณภาพ";
     };
   }, [profileData]);
 

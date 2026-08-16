@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck } from 'lucide-react';
 
 export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess, onEditJob, onDeleteJob }) {
   const [coverNote, setCoverNote] = useState('');
@@ -82,6 +82,55 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* ══ ADMIN buttons ══ */}
+            {currentUser?.role === 'admin' && (
+              <>
+                <button
+                  onClick={() => {
+                    // Open email to employer
+                    const mailto = job.contactEmail || job.employerEmail || '';
+                    if (mailto) window.open(`mailto:${mailto}`);
+                    else alert('ไม่พบอีเมลของผู้จ้างงาน');
+                  }}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                    border: 'none',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(124,58,237,0.25)'
+                  }}
+                >
+                  <MessageSquare style={{ width: '14px', height: '14px' }} /> ติดต่อผู้จ้าง
+                </button>
+                <button
+                  onClick={handleDelete}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '8px 16px',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontWeight: '700'
+                  }}
+                >
+                  <Trash2 style={{ width: '14px', height: '14px' }} /> ลบโพสต์
+                </button>
+              </>
+            )}
+
+            {/* ══ EMPLOYER own-post buttons ══ */}
             {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
               <>
                 <button
@@ -123,13 +172,16 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
               </>
             )}
 
-            <button
-              onClick={handleShare}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.8rem', padding: '8px 14px' }}
-            >
-              {copiedLink ? <><Check style={{ width: '14px', height: '14px', color: '#059669' }} /> คัดลอกลิงก์แล้ว</> : <><Share2 style={{ width: '14px', height: '14px' }} /> แชร์ตำแหน่งงาน</>}
-            </button>
+            {/* ══ Share button (not shown to admin) ══ */}
+            {currentUser?.role !== 'admin' && (
+              <button
+                onClick={handleShare}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.8rem', padding: '8px 14px' }}
+              >
+                {copiedLink ? <><Check style={{ width: '14px', height: '14px', color: '#059669' }} /> คัดลอกลิงก์แล้ว</> : <><Share2 style={{ width: '14px', height: '14px' }} /> แชร์ตำแหน่งงาน</>}
+              </button>
+            )}
           </div>
 
         </div>
@@ -194,7 +246,8 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
 
         </div>
 
-        {/* Right Column: Application Form */}
+        {/* Right Column: Application Form — hidden for admin */}
+        {currentUser?.role !== 'admin' && (
         <div>
           <div className="clean-card" style={{ sticky: true, top: '90px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -248,6 +301,7 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
 
           </div>
         </div>
+        )}
 
       </div>
 

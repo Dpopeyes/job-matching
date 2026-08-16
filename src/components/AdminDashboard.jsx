@@ -31,8 +31,6 @@ async function fetchUserById(userId) {
 
 const TABS = [
   { key: 'overview',  label: 'ภาพรวม',          icon: ShieldCheck,    color: '#7c3aed' },
-  { key: 'pending',   label: 'รอการอนุมัติ',     icon: Clock,          color: '#2563eb' },
-  { key: 'approved',  label: 'อนุมัติแล้ว',      icon: CheckCircle2,   color: '#059669' },
   { key: 'rejected',  label: 'ปฏิเสธแล้ว',       icon: AlertTriangle,  color: '#dc2626' },
   { key: 'chats',     label: 'ห้องสนทนา',         icon: MessageSquare,  color: '#0d9488' },
   { key: 'users',     label: 'ผู้ใช้ทั้งหมด',    icon: Users,          color: '#db2777' },
@@ -223,8 +221,6 @@ export default function AdminDashboard({ currentUser, onNavigateProfile }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           {[
             { label: 'โพสต์ทั้งหมด', value: jobs.length, color: '#2563eb', bg: '#eff6ff', icon: Briefcase },
-            { label: 'รอการอนุมัติ', value: pending.length, color: '#d97706', bg: '#fffbeb', icon: Clock },
-            { label: 'อนุมัติแล้ว', value: approved.length, color: '#059669', bg: '#ecfdf5', icon: CheckCircle2 },
             { label: 'ปฏิเสธแล้ว', value: rejected.length, color: '#dc2626', bg: '#fef2f2', icon: AlertTriangle },
             { label: 'ห้องสนทนา', value: applications.length, color: '#0d9488', bg: '#f0fdfa', icon: MessageSquare },
             { label: 'ผู้ใช้งาน', value: users.length, color: '#7c3aed', bg: '#f5f3ff', icon: Users },
