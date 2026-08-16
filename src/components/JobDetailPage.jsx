@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck } from 'lucide-react';
+import { calculateJobMatch } from '../utils/matching';
 
-export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess, onEditJob, onDeleteJob }) {
+export default function JobDetailPage({ job, currentUser, userSkills = [], onBack, onApplySuccess, onEditJob, onDeleteJob }) {
+
   const [coverNote, setCoverNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appliedSuccess, setAppliedSuccess] = useState(false);
@@ -42,6 +44,10 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const matchInfo = calculateJobMatch(job, currentUser, userSkills);
+  const matchRate = matchInfo.matchRate;
+  const isHighMatch = matchRate >= 85;
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '60px' }}>
       
@@ -70,9 +76,27 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
                 <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                   {job.title}
                 </h1>
-                <span className="badge badge-success">
-                  Match {job.matchRate}%
+                <span 
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: '800',
+                    padding: '4px 12px',
+                    borderRadius: '999px',
+                    background: isHighMatch ? '#dcfce7' : '#eff6ff',
+                    color: isHighMatch ? '#15803d' : '#1d4ed8',
+                    border: isHighMatch ? '1px solid #86efac' : '1px solid #bfdbfe',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Sparkles style={{ width: '14px', height: '14px' }} /> Match {matchRate}%
                 </span>
+                {matchInfo.isMajorMatched && currentUser?.role === 'applicant' && (
+                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                    ✨ ตรงกับสาขาวิชาของคุณ
+                  </span>
+                )}
               </div>
 
               <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -80,6 +104,7 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
               </p>
             </div>
           </div>
+
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {/* ══ ADMIN buttons ══ */}
@@ -249,10 +274,49 @@ export default function JobDetailPage({ job, currentUser, onBack, onApplySuccess
         {/* Right Column: Application Form — hidden for admin */}
         {currentUser?.role !== 'admin' && (
         <div>
+          {/* Match Analysis Breakdown for Applicant */}
+          {currentUser?.role === 'applicant' && (
+            <div className="clean-card" style={{ marginBottom: '18px', background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)', border: '1px solid #a7f3d0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#065f46', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles style={{ width: '16px', height: '16px', color: '#059669' }} /> วิเคราะห์ความเหมาะสมสำหรับคุณ
+                </h4>
+                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#059669', background: '#ffffff', padding: '2px 10px', borderRadius: '999px', border: '1px solid #6ee7b7' }}>
+                  {matchRate}% Match
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div style={{ background: '#e2e8f0', height: '8px', borderRadius: '999px', overflow: 'hidden', marginBottom: '12px' }}>
+                <div style={{ background: 'linear-gradient(90deg, #10b981, #2563eb)', height: '100%', width: `${matchRate}%`, borderRadius: '999px', transition: 'width 0.5s ease' }} />
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>
+                  🎓 <strong>ความตรงสายงาน:</strong>{' '}
+                  {matchInfo.isMajorMatched ? (
+                    <span style={{ color: '#059669', fontWeight: '700' }}>ตรงกับสาขา {currentUser.major || 'ของคุณ'} ✨</span>
+                  ) : (
+                    <span style={{ color: '#475569' }}>สายงานใกล้เคียง ({currentUser.major || 'ไม่ได้ระบุสาขา'})</span>
+                  )}
+                </div>
+                <div>
+                  ✅ <strong>ทักษะที่คุณมีตรงกับงาน ({matchInfo.matchedSkills.length} ทักษะ):</strong>{' '}
+                  {matchInfo.matchedSkills.length > 0 ? (
+                    <span style={{ color: '#047857', fontWeight: '700' }}>{matchInfo.matchedSkills.map(s => s.toUpperCase()).join(', ')}</span>
+                  ) : (
+                    <span style={{ color: '#64748b' }}>แนะนำให้เรียนรู้เพิ่มในทักษะสายงานนี้</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="clean-card" style={{ sticky: true, top: '90px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Send style={{ width: '18px', height: '18px', color: '#2563eb' }} /> ยื่นใบสมัครงานนี้
             </h3>
+
 
             {appliedSuccess ? (
               <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '20px', borderRadius: '16px', textAlign: 'center' }}>

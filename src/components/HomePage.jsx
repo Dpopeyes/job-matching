@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit } from 'lucide-react';
+import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit, Check } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
+import { calculateJobMatch } from '../utils/matching';
 
-export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefreshJobs, onAddNewJob, onDeleteJob, onOpenPostJobModal, onOpenEditJobModal }) {
+export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkills = [], onRefreshJobs, onAddNewJob, onDeleteJob, onOpenPostJobModal, onOpenEditJobModal }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedProvince, setSelectedProvince] = useState('ทุกสถานที่ (ทั่วประเทศไทย)');
+  const [sortBy, setSortBy] = useState(currentUser?.role === 'applicant' ? 'match' : 'newest');
+
 
   const categories = [
     { id: 'all', label: '🌐 งานทุกประเภท' },
@@ -92,6 +95,17 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
     return matchesSearch && matchesCategory && (matchesProvince || selectedProvince === 'ทุกสถานที่ (ทั่วประเทศไทย)');
   });
 
+  // Calculate dynamic Match Rate % for all jobs & sort
+  const processedJobs = filteredJobs.map(job => {
+    const matchInfo = calculateJobMatch(job, currentUser, userSkills);
+    return { ...job, _matchInfo: matchInfo };
+  }).sort((a, b) => {
+    if (sortBy === 'match') {
+      return b._matchInfo.matchRate - a._matchInfo.matchRate;
+    }
+    return 0; // Default order
+  });
+
   return (
     <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
 
@@ -151,6 +165,56 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
         </div>
       </section>
 
+      {/* Personalized Applicant Matching Banner */}
+      {currentUser?.role === 'applicant' && (
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
+            border: '1px solid #bfdbfe',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.05)'
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', color: '#1e40af', fontSize: '0.95rem' }}>
+              <Sparkles style={{ width: '18px', height: '18px', color: '#2563eb' }} />
+              🎯 คำนวณ Match Rate เฉพาะบุคคลสำหรับคุณ ({currentUser.name})
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0' }}>
+              วิเคราะห์ความเข้ากันได้จากสาขา: <strong style={{ color: '#0f172a' }}>{currentUser.major || 'สาขาวิทยาการคอมพิวเตอร์'}</strong> | ทักษะของคุณ: <strong style={{ color: '#047857' }}>{userSkills.length > 0 ? `${userSkills.length} ทักษะ` : 'ทักษะในโปรไฟล์'}</strong>
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>เรียงลำดับตาม:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0f172a',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="match">🎯 ความเข้ากันได้สูงสุด (Match Rate %)</option>
+              <option value="newest">📅 ประกาศใหม่อยู่บน (Newest)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Category Pills & Employer Action */}
       <section style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -159,7 +223,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
               <SlidersHorizontal style={{ width: '20px', height: '20px', color: '#2563eb' }} /> ตำแหน่งงานเปิดรับสมัครทุกประเภท
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0' }}>
-              พบตำแหน่งงานคุณภาพที่ทุกคนมองเห็น {filteredJobs.length} รายการ
+              พบตำแหน่งงานคุณภาพที่ทุกคนมองเห็น {processedJobs.length} รายการ
             </p>
           </div>
 
@@ -191,7 +255,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
       </section>
 
       {/* Clean Job Cards Grid or Empty State */}
-      {filteredJobs.length === 0 ? (
+      {processedJobs.length === 0 ? (
         <div className="clean-card" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
           <Briefcase style={{ width: '48px', height: '48px', color: '#cbd5e1', margin: '0 auto 12px' }} />
           <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>ยังไม่มีประกาศตำแหน่งงานในขณะนี้</h3>
@@ -201,7 +265,13 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
         </div>
       ) : (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
-          {filteredJobs.map((job) => (
+          {processedJobs.map((job) => {
+            const matchInfo = job._matchInfo || calculateJobMatch(job, currentUser, userSkills);
+            const matchRate = matchInfo.matchRate;
+            const isHighMatch = matchRate >= 85;
+            const isMediumMatch = matchRate >= 70 && matchRate < 85;
+
+            return (
             <div
               key={job.id}
               className="clean-card"
@@ -227,14 +297,34 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                      Match {job.matchRate || 95}%
+                  <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'flex-end' }}>
+
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: '800',
+                        padding: '3px 9px',
+                        borderRadius: '999px',
+                        background: isHighMatch ? '#dcfce7' : isMediumMatch ? '#eff6ff' : '#f1f5f9',
+                        color: isHighMatch ? '#15803d' : isMediumMatch ? '#1d4ed8' : '#475569',
+                        border: isHighMatch ? '1px solid #86efac' : isMediumMatch ? '1px solid #bfdbfe' : '1px solid #cbd5e1',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      {isHighMatch && <Sparkles style={{ width: '12px', height: '12px' }} />}
+                      Match {matchRate}%
                     </span>
+                    {matchInfo.isMajorMatched && currentUser?.role === 'applicant' && (
+                      <span style={{ fontSize: '0.625rem', fontWeight: '700', color: '#16a34a', background: '#f0fdf4', padding: '1px 6px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                        ✨ ตรงสายงานของคุณ
+                      </span>
+                    )}
 
                     {/* Edit & Delete Job Buttons for Owner Employer */}
                     {currentUser && currentUser.role === 'employer' && job.employerId === currentUser.id && (
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
                         <button
                           onClick={(e) => handleEditJobClick(e, job)}
                           title="แก้ไขประกาศงาน"
@@ -297,13 +387,35 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
                   {job.description}
                 </p>
 
-                {/* Skills required */}
+                {/* Skills required with highlight */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {job.skillsRequired && job.skillsRequired.map((skill, idx) => (
-                    <span key={idx} className="badge badge-skill" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                      {typeof skill === 'string' ? skill : skill.name}
-                    </span>
-                  ))}
+                  {job.skillsRequired && job.skillsRequired.map((skill, idx) => {
+                    const skillStr = typeof skill === 'string' ? skill : skill.name;
+                    const isMatched = matchInfo.matchedSkills.some(m => 
+                      m.toLowerCase().includes(skillStr.toLowerCase()) || skillStr.toLowerCase().includes(m.toLowerCase())
+                    );
+
+                    return (
+                      <span 
+                        key={idx} 
+                        style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontWeight: isMatched ? '800' : '500',
+                          background: isMatched ? '#dcfce7' : '#f1f5f9',
+                          color: isMatched ? '#15803d' : '#475569',
+                          border: isMatched ? '1px solid #86efac' : '1px solid #e2e8f0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        {isMatched && <Check style={{ width: '11px', height: '11px', color: '#16a34a' }} />}
+                        {skillStr}
+                      </span>
+                    );
+                  })}
                 </div>
 
               </div>
@@ -317,10 +429,12 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, onRefres
               </div>
 
             </div>
-          ))}
+          );
+          })}
         </section>
       )}
 
     </div>
   );
 }
+

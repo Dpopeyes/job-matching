@@ -10,7 +10,8 @@ import JobDetailPage from './components/JobDetailPage';
 import HotChat from './components/HotChat';
 import PostJobModal from './components/PostJobModal';
 import AdminDashboard from './components/AdminDashboard';
-import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications } from './data/api';
+import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications, fetchUserPortfolio } from './data/api';
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -77,15 +78,26 @@ export default function App() {
 
   // 3. Real Applications state synced ONLY with SQLite Shared DB (NO MOCK DATA)
   const [applications, setApplications] = useState([]);
+  const [currentUserSkills, setCurrentUserSkills] = useState([]);
 
   // Sync Current User session with localStorage
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('app_current_user', JSON.stringify(currentUser));
+      // Load user portfolio skills for matching
+      if (currentUser.id) {
+        fetchUserPortfolio(currentUser.id).then(data => {
+          if (data && data.skills) {
+            setCurrentUserSkills(data.skills);
+          }
+        });
+      }
     } else {
       localStorage.removeItem('app_current_user');
+      setCurrentUserSkills([]);
     }
   }, [currentUser]);
+
 
   // Sync Jobs with localStorage
   useEffect(() => {
@@ -227,6 +239,7 @@ export default function App() {
             jobs={jobs} 
             onSelectJob={handleJobSelect} 
             currentUser={currentUser} 
+            userSkills={currentUserSkills}
             onNavigateToProfile={() => handleTabChange('profile')}
             onRefreshJobs={loadJobsData}
             onAddNewJob={handleAddNewJob}
@@ -246,8 +259,10 @@ export default function App() {
           <JobDetailPage
             job={selectedJob}
             currentUser={currentUser}
+            userSkills={currentUserSkills}
             onBack={() => handleTabChange('home')}
             onApplySuccess={handleApplySuccess}
+
             onEditJob={(job) => {
               setEditingJob(job);
               setShowPostJobModal(true);
