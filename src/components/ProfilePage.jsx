@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, QrCode, ExternalLink, GitBranch, Sparkles, Code, GraduationCap, Mail, Phone, Plus, Trash2, Building, Globe, MapPin, FileCheck, CheckCircle2, Edit, Camera, X } from 'lucide-react';
 import QRCodeModal from './QRCodeModal';
+import AdminProfileView from './AdminProfileView';
 import { addUserSkill, deleteUserSkill, fetchUserPortfolio, updateUserProfile, addUserProject, deleteUserProject, updateUserProject } from '../data/api';
 const SKILL_SUGGESTIONS = [
   // --- MEDICAL & HEALTHCARE (การแพทย์และสาธารณสุข) ---
@@ -150,7 +151,23 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
     );
   }
 
+  // Render Specialized Admin Profile View for Admin Role
+  if (profileData.role === 'admin') {
+    return (
+      <AdminProfileView 
+        user={profileData} 
+        onUpdateUser={(updated) => {
+          setProfileData(updated);
+          if (onUpdateUser) onUpdateUser(updated);
+        }}
+        onNavigateAdmin={onNavigateAdmin}
+        onNavigateHome={onNavigateHome}
+      />
+    );
+  }
+
   const isEmployer = profileData.role === 'employer';
+
 
   const handleSkillInputChange = (val) => {
     setNewSkillName(val);

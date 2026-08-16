@@ -298,8 +298,11 @@ export default function App() {
               localStorage.setItem('app_current_user', JSON.stringify(updatedUser));
             }}
             readOnly={activeTab === 'view-profile' && viewProfileId !== currentUser?.id}
+            onNavigateAdmin={() => handleTabChange('admin')}
+            onNavigateHome={() => handleTabChange('home')}
           />
         )}
+
 
         {activeTab === 'applications' && (
           <ApplicationsPage 

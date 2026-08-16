@@ -87,15 +87,14 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, setCurren
               )
             )}
 
-            {currentUser?.role !== 'admin' && (
-              <button
-                onClick={() => handleNavClick('profile')}
-                className={`nav-btn ${activeTab === 'profile' ? 'active' : ''}`}
-              >
-                <User style={{ width: '16px', height: '16px' }} />
-                {isEmployer ? 'โปรไฟล์องค์กรนายจ้าง' : 'โปรไฟล์ & ผลงาน'}
-              </button>
-            )}
+            <button
+              onClick={() => handleNavClick('profile')}
+              className={`nav-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            >
+              <User style={{ width: '16px', height: '16px' }} />
+              {currentUser?.role === 'admin' ? 'โปรไฟล์ผู้ดูแลระบบ' : (isEmployer ? 'โปรไฟล์องค์กรนายจ้าง' : 'โปรไฟล์ & ผลงาน')}
+            </button>
+
           </div>
 
           {/* User Auth Section */}
