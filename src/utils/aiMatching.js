@@ -1,4 +1,4 @@
-// AI-Powered Semantic Job & Candidate Matching Engine (Dynamic Real-Time Match Calculator)
+// AI-Powered Semantic Job & Candidate Matching Engine (100% Transparent & Mathematically Accurate)
 
 // Major & Job Field Taxonomy Clusters for Semantic Distance Calculation
 const TAXONOMY_CLUSTERS = {
@@ -53,7 +53,7 @@ const SKILL_ALIASES = {
   'figma design': 'figma'
 };
 
-// Fallback skills for Tech / CS applicants if profile skills array is empty in DB
+// Default Applicant Tech Skills if DB profile skills list is empty
 const DEFAULT_TECH_SKILLS = [
   'React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS', 'คอมพิวเตอร์', 'การสื่อสาร', 'การทำงานเป็นทีม'
 ];
@@ -82,7 +82,7 @@ function getClusterKey(textStr) {
 }
 
 /**
- * AI Dynamic Match Rate Calculation (60% Skill Match + 40% Major Fit)
+ * AI Transparent Match Calculation (70% Skill Score + 30% Major Score)
  * @param {Object} job - Job posting details
  * @param {Object} applicant - Applicant profile (major, skills, bio)
  * @returns {Object} Match analysis result
@@ -90,11 +90,13 @@ function getClusterKey(textStr) {
 export function calculateAIMatchRate(job, applicant) {
   if (!job || !applicant) {
     return {
-      matchRate: 35,
+      matchRate: 15,
       isMajorMatched: false,
       majorMatchReason: 'ต่างสายงาน',
       matchedSkills: [],
-      missingSkills: []
+      missingSkills: [],
+      skillScore: 0,
+      majorScore: 0
     };
   }
 
@@ -108,7 +110,7 @@ export function calculateAIMatchRate(job, applicant) {
     rawJobSkills = job.skillsRequired.split(/[\n,/]+/);
   }
 
-  // Extract skills from title if skillsRequired list is empty
+  // Extract skills from job title if list is empty
   if (rawJobSkills.length === 0 && job.title) {
     const jobTitleNorm = normalizeText(job.title);
     if (jobTitleNorm.includes('react')) rawJobSkills.push('React');
@@ -158,14 +160,16 @@ export function calculateAIMatchRate(job, applicant) {
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet);
 
-  let skillMatchRatio = 0;
+  // Skill Score (0% to 100%)
+  let skillRatio = 0;
   if (jobSkillsClean.length > 0) {
-    skillMatchRatio = matchedSkills.length / jobSkillsClean.length;
+    skillRatio = matchedSkills.length / jobSkillsClean.length;
   } else {
-    skillMatchRatio = 0.5; // If job lists no specific skills required
+    skillRatio = 0.5; // If job lists no specific skills required
   }
+  const skillScore = Math.round(skillRatio * 100);
 
-  // 3. Major Taxonomy & Field Matching Analysis (40% Weight)
+  // 3. Major Taxonomy & Field Matching Analysis (0% to 100%)
   const applicantMajor = normalizeText(applicant.major);
   const jobTitle = normalizeText(job.title);
   const jobCategory = normalizeText(job.category);
@@ -174,54 +178,47 @@ export function calculateAIMatchRate(job, applicant) {
   const applicantCluster = getClusterKey(applicantMajor);
   const jobTitleCluster = getClusterKey(jobTitle) || getClusterKey(jobCategory) || getClusterKey(jobDescription);
 
-  let majorScore = 0.15; // Base score for totally different major
+  let majorScore = 0; // 0% for totally different major
   let isMajorMatched = false;
   let majorMatchReason = '⚠️ ต่างสายงาน';
 
-  // Major cluster matching
   if (applicantCluster === 'tech') {
     if (jobTitle.includes('เครื่องจักร') || jobTitle.includes('ช่างเครื่อง') || jobTitle.includes('บัญชี') || jobTitle.includes('การเงิน') || jobTitle.includes('ขาย')) {
-      majorScore = 0.1;
+      majorScore = 0;
       isMajorMatched = false;
       majorMatchReason = '⚠️ ต่างสายงาน';
     } else if (jobTitleCluster === 'tech') {
-      majorScore = 0.95;
+      majorScore = 100;
       isMajorMatched = true;
       majorMatchReason = `ตรงกับสาขา ${applicant.major || 'ของคุณ'} ✨`;
     } else if (jobTitleCluster === 'design') {
-      majorScore = 0.60;
+      majorScore = 50;
       isMajorMatched = false;
       majorMatchReason = 'สายงานใกล้เคียง (UI/UX Design)';
     }
   } else if (applicantCluster && jobTitleCluster && applicantCluster === jobTitleCluster) {
-    majorScore = 0.95;
+    majorScore = 100;
     isMajorMatched = true;
     majorMatchReason = `ตรงกับสาขา ${applicant.major || 'ของคุณ'} ✨`;
   } else if (applicantMajor && (jobTitle.includes(applicantMajor) || applicantMajor.includes(jobTitle))) {
-    majorScore = 0.95;
+    majorScore = 100;
     isMajorMatched = true;
     majorMatchReason = `ตรงกับสาขา ${applicant.major} ✨`;
   }
 
-  // 4. Combined Dynamic Weighted Score (60% Skill Match Ratio + 40% Major Score)
-  const rawScore = (skillMatchRatio * 0.6) + (majorScore * 0.4);
-  
-  // Dynamic scale from 15% to 98%
-  let finalMatchRate = Math.round(15 + (rawScore * 83));
+  // 4. Combined Weighted Match Rate: (Skill Score * 70%) + (Major Score * 30%)
+  let finalMatchRate = Math.round((skillScore * 0.7) + (majorScore * 0.3));
 
-  // Boundaries based on semantic fit
-  if (!isMajorMatched) {
-    finalMatchRate = Math.min(42, finalMatchRate);
-  } else {
-    // Dynamic range for matched major (55% to 98% based on actual matched skills)
-    finalMatchRate = Math.max(55, Math.min(98, finalMatchRate));
-  }
+  // Minimum floor 15% for any listing
+  finalMatchRate = Math.max(15, Math.min(100, finalMatchRate));
 
   return {
     matchRate: finalMatchRate,
     isMajorMatched,
     majorMatchReason,
     matchedSkills,
-    missingSkills
+    missingSkills,
+    skillScore,
+    majorScore
   };
 }

@@ -332,22 +332,27 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
 
               <div style={{ fontSize: '0.8rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div>
-                  🎓 <strong>ความตรงสายงาน:</strong>{' '}
+                  🎓 <strong>ความตรงสายงาน (น้ำหนัก 30%):</strong>{' '}
                   {matchInfo.isMajorMatched ? (
-                    <span style={{ color: '#059669', fontWeight: '700' }}>ตรงกับสาขา {currentUser.major || 'ของคุณ'} ✨</span>
+                    <span style={{ color: '#059669', fontWeight: '700' }}>ตรงสาย 100% ({currentUser.major || 'ของคุณ'}) ✨</span>
+                  ) : matchInfo.majorScore > 0 ? (
+                    <span style={{ color: '#d97706', fontWeight: '700' }}>สายงานใกล้เคียง 50%</span>
                   ) : (
-                    <span style={{ color: '#475569' }}>สายงานใกล้เคียง ({currentUser.major || 'ไม่ได้ระบุสาขา'})</span>
+                    <span style={{ color: '#ef4444', fontWeight: '700' }}>ต่างสายงาน 0%</span>
                   )}
                 </div>
                 <div>
-                  ✅ <strong>ทักษะที่คุณมีตรงกับงาน ({matchInfo.matchedSkills.length} ทักษะ):</strong>{' '}
+                  ✅ <strong>ทักษะตรงกัน (น้ำหนัก 70%):</strong>{' '}
                   {matchInfo.matchedSkills.length > 0 ? (
-                    <span style={{ color: '#047857', fontWeight: '700' }}>{matchInfo.matchedSkills.map(s => s.toUpperCase()).join(', ')}</span>
+                    <span style={{ color: '#047857', fontWeight: '700' }}>
+                      {matchInfo.matchedSkills.map(s => s.toUpperCase()).join(', ')} (คะแนนทักษะ {matchInfo.skillScore || 0}%)
+                    </span>
                   ) : (
-                    <span style={{ color: '#64748b' }}>แนะนำให้เรียนรู้เพิ่มในทักษะสายงานนี้</span>
+                    <span style={{ color: '#64748b' }}>ยังไม่มีทักษะที่ตรงกัน (0%)</span>
                   )}
                 </div>
               </div>
+
 
               {/* Real-time Google Gemini AI Analysis Box */}
               <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#3b0764' }}>
