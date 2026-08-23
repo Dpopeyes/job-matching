@@ -1,4 +1,4 @@
-// AI-Powered Semantic Job & Candidate Matching Engine (Realistic Real-World Semantic Matcher)
+// AI-Powered Semantic Job & Candidate Matching Engine (Dynamic Real-Time Match Calculator)
 
 // Major & Job Field Taxonomy Clusters for Semantic Distance Calculation
 const TAXONOMY_CLUSTERS = {
@@ -82,7 +82,7 @@ function getClusterKey(textStr) {
 }
 
 /**
- * AI Semantic Match Calculation for both Applicant & Employer views
+ * AI Dynamic Match Rate Calculation (60% Skill Match + 40% Major Fit)
  * @param {Object} job - Job posting details
  * @param {Object} applicant - Applicant profile (major, skills, bio)
  * @returns {Object} Match analysis result
@@ -108,7 +108,7 @@ export function calculateAIMatchRate(job, applicant) {
     rawJobSkills = job.skillsRequired.split(/[\n,/]+/);
   }
 
-  // Also include skills mentioned in job title/description if skillsRequired is short
+  // Extract skills from title if skillsRequired list is empty
   if (rawJobSkills.length === 0 && job.title) {
     const jobTitleNorm = normalizeText(job.title);
     if (jobTitleNorm.includes('react')) rawJobSkills.push('React');
@@ -126,13 +126,10 @@ export function calculateAIMatchRate(job, applicant) {
   if (Array.isArray(applicant.skills) && applicant.skills.length > 0) {
     rawApplicantSkills = applicant.skills;
   } else {
-    // If applicant skills array is empty in DB, use default tech skills for CS/IT majors
     rawApplicantSkills = DEFAULT_TECH_SKILLS;
   }
 
   const applicantSkillsClean = rawApplicantSkills.map(s => (typeof s === 'string' ? s : s.name || '')).filter(Boolean);
-
-  // Normalize skill arrays
   const normApplicantSkills = applicantSkillsClean.map(s => normalizeSkill(s));
 
   // Match skills using flexible token & substring matching
@@ -146,11 +143,8 @@ export function calculateAIMatchRate(job, applicant) {
       if (asNorm === jsNorm || asNorm.includes(jsNorm) || jsNorm.includes(asNorm)) {
         return true;
       }
-      // Token level match for composite skills (e.g., "react / tailwind" or "html/css")
       const jsTokens = jsNorm.split(/[/\s,]+/);
       const asTokens = asNorm.split(/[/\s,]+/);
-
-
       return jsTokens.some(jt => jt.length >= 2 && asTokens.some(at => at.includes(jt) || jt.includes(at)));
     });
 
@@ -164,9 +158,11 @@ export function calculateAIMatchRate(job, applicant) {
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet);
 
-  let skillMatchRatio = 0.5;
+  let skillMatchRatio = 0;
   if (jobSkillsClean.length > 0) {
     skillMatchRatio = matchedSkills.length / jobSkillsClean.length;
+  } else {
+    skillMatchRatio = 0.5; // If job lists no specific skills required
   }
 
   // 3. Major Taxonomy & Field Matching Analysis (40% Weight)
@@ -182,7 +178,7 @@ export function calculateAIMatchRate(job, applicant) {
   let isMajorMatched = false;
   let majorMatchReason = '⚠️ ต่างสายงาน';
 
-  // Check if job is in a conflicting/anti-cluster (e.g. Machinery Operator for Tech student)
+  // Major cluster matching
   if (applicantCluster === 'tech') {
     if (jobTitle.includes('เครื่องจักร') || jobTitle.includes('ช่างเครื่อง') || jobTitle.includes('บัญชี') || jobTitle.includes('การเงิน') || jobTitle.includes('ขาย')) {
       majorScore = 0.1;
@@ -193,7 +189,7 @@ export function calculateAIMatchRate(job, applicant) {
       isMajorMatched = true;
       majorMatchReason = `ตรงกับสาขา ${applicant.major || 'ของคุณ'} ✨`;
     } else if (jobTitleCluster === 'design') {
-      majorScore = 0.65;
+      majorScore = 0.60;
       isMajorMatched = false;
       majorMatchReason = 'สายงานใกล้เคียง (UI/UX Design)';
     }
@@ -207,22 +203,18 @@ export function calculateAIMatchRate(job, applicant) {
     majorMatchReason = `ตรงกับสาขา ${applicant.major} ✨`;
   }
 
-  // 4. Combined Weighted Match Calculation
+  // 4. Combined Dynamic Weighted Score (60% Skill Match Ratio + 40% Major Score)
   const rawScore = (skillMatchRatio * 0.6) + (majorScore * 0.4);
   
-  // Dynamic scale from 18% to 98%
+  // Dynamic scale from 15% to 98%
   let finalMatchRate = Math.round(15 + (rawScore * 83));
 
-  // Hard boundaries
+  // Boundaries based on semantic fit
   if (!isMajorMatched) {
-    finalMatchRate = Math.min(38, finalMatchRate);
+    finalMatchRate = Math.min(42, finalMatchRate);
   } else {
-    // If major is matched, ensure match rate scales with matched skills
-    if (matchedSkills.length === 0 && jobSkillsClean.length > 0) {
-      finalMatchRate = 60; // Has major match but lacks specific tech skills
-    } else {
-      finalMatchRate = Math.max(78, finalMatchRate);
-    }
+    // Dynamic range for matched major (55% to 98% based on actual matched skills)
+    finalMatchRate = Math.max(55, Math.min(98, finalMatchRate));
   }
 
   return {
