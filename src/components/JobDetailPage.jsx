@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck, Bot } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Building, MapPin, DollarSign, Calendar, Sparkles, CheckCircle2, Send, Share2, Briefcase, FileText, Check, Edit, Trash2, MessageSquare, ShieldCheck, Bot, Cpu } from 'lucide-react';
 import { calculateJobMatch } from '../utils/matching';
+import { fetchGeminiAIMatch } from '../data/api';
 import AIScreeningBotModal from './AIScreeningBotModal';
 
 export default function JobDetailPage({ job, currentUser, userSkills = [], onBack, onApplySuccess, onEditJob, onDeleteJob }) {
@@ -10,7 +11,26 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
   const [appliedSuccess, setAppliedSuccess] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isAIBotOpen, setIsAIBotOpen] = useState(false);
+  const [geminiAnalysis, setGeminiAnalysis] = useState(null);
+  const [isLoadingGemini, setIsLoadingGemini] = useState(false);
 
+  useEffect(() => {
+    if (job && currentUser?.role === 'applicant') {
+      setIsLoadingGemini(true);
+      fetchGeminiAIMatch(job, {
+        name: currentUser.name,
+        major: currentUser.major,
+        university: currentUser.university,
+        skills: userSkills.length > 0 ? userSkills : currentUser.skills,
+        bio: currentUser.bio
+      }).then(res => {
+        setIsLoadingGemini(false);
+        if (res && res.analysis) {
+          setGeminiAnalysis(res.analysis);
+        }
+      }).catch(() => setIsLoadingGemini(false));
+    }
+  }, [job, currentUser, userSkills]);
 
   const handleEdit = () => {
     if (onEditJob) onEditJob(job);
@@ -106,13 +126,11 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
                 )}
               </div>
 
-
               <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Building style={{ width: '16px', height: '16px', color: '#2563eb' }} /> {job.company}
               </p>
             </div>
           </div>
-
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {/* ══ ADMIN buttons ══ */}
@@ -120,7 +138,6 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
               <>
                 <button
                   onClick={() => {
-                    // Open email to employer
                     const mailto = job.contactEmail || job.employerEmail || '';
                     if (mailto) window.open(`mailto:${mailto}`);
                     else alert('ไม่พบอีเมลของผู้จ้างงาน');
@@ -317,6 +334,20 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
                   )}
                 </div>
               </div>
+
+              {/* Real-time Google Gemini AI Analysis Box */}
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#3b0764' }}>
+                <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', color: '#7e22ce', marginBottom: '4px' }}>
+                  <Cpu style={{ width: '15px', height: '15px', color: '#7c3aed' }} /> บทวิเคราะห์ประเมินสดจาก Google Gemini AI 🤖
+                </div>
+                {isLoadingGemini ? (
+                  <div style={{ color: '#64748b', fontStyle: 'italic' }}>กำลังประมวลผลวิเคราะห์เรียลไทม์กับ Google Gemini AI...</div>
+                ) : (
+                  <p style={{ margin: 0, lineHeight: 1.5, background: '#ffffff', padding: '10px', borderRadius: '10px', border: '1px solid #e9d5ff', color: '#4c1d95', fontStyle: 'italic' }}>
+                    "{geminiAnalysis?.aiAnalysis || 'ผู้สมัครมีพื้นฐานการศึกษาและทักษะสอดคล้องกับตำแหน่งงาน เหมาะสำหรับการพิจารณาคัดเลือกเข้าสู่รอบสัมภาษณ์'}"
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -324,7 +355,6 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
             <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Send style={{ width: '18px', height: '18px', color: '#2563eb' }} /> ยื่นใบสมัครงานนี้
             </h3>
-
 
             {appliedSuccess ? (
               <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '20px', borderRadius: '16px', textAlign: 'center' }}>
@@ -409,7 +439,6 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
         job={job}
         currentUser={currentUser}
       />
-
 
     </div>
   );

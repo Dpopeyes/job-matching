@@ -311,3 +311,20 @@ export async function updateUserProject(projectId, projectData) {
     return null;
   }
 }
+
+// Fetch Google Gemini Real-Time AI Match Analysis
+export async function fetchGeminiAIMatch(job, applicant) {
+  try {
+    const res = await fetch(`${API_BASE}/ai/match`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job, applicant })
+    });
+    if (!res.ok) throw new Error('Fetch Gemini AI match failed');
+    return await res.json();
+  } catch (err) {
+    console.error('API Error (Gemini AI Match):', err);
+    return null;
+  }
+}
+
