@@ -2,15 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileCheck, Building, Calendar, Users, Mail, Phone, CheckCircle2, User, Sparkles, MessageSquare, Clock, Send, X, FolderGit2, Globe, ExternalLink, QrCode, Download } from 'lucide-react';
 import { updateApplicationStatus, fetchMessages, sendMessage, fetchUserPortfolio } from '../data/api';
 import QRCodeModal from './QRCodeModal';
+import { calculateAIMatchRate } from '../utils/aiMatching';
 
 export default function ApplicationsPage({ applications = [], currentUser, onNavigateHome, onRefreshApplications, onOpenChat }) {
   const isEmployer = currentUser?.role === 'employer';
   const [appsState, setAppsState] = useState(applications);
+  const [employerSortBy, setEmployerSortBy] = useState('match');
   const [activeChatApp, setActiveChatApp] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessageText, setNewMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+
 
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [selectedPortfolioApp, setSelectedPortfolioApp] = useState(null);
@@ -257,41 +260,66 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', flexWrap: 'wrap', gap: '10px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                 📋 รายชื่อผู้สมัครงานจริง ({appsState.length} คน)
               </h3>
             </div>
 
-            {appsState.map((app) => (
-              <div key={app.id} className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '4px solid #0d9488' }}>
-                
-                {/* Applicant Header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f0fdfa', border: '2px solid #0d9488', color: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.1rem' }}>
-                      👤
+            {appsState.map((app) => {
+              const candidateMatch = calculateAIMatchRate(
+                { title: app.jobTitle || 'Developer', skills: ['React', 'JavaScript', 'HTML/CSS', 'Git'], description: app.jobTitle || '' },
+                { major: app.applicantMajor || 'เทคโนโลยีดิจิทัล', skills: app.applicantSkills || ['React', 'JavaScript', 'Git'] }
+              );
+
+              return (
+                <div key={app.id} className="clean-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '4px solid #0d9488' }}>
+                  
+                  {/* Applicant Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f0fdfa', border: '2px solid #0d9488', color: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.1rem' }}>
+                        👤
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                            {app.applicantName || 'ผู้สมัครงาน'}
+                          </h4>
+                          <span 
+                            style={{
+                              background: '#ecfdf5',
+                              color: '#047857',
+                              border: '1px solid #a7f3d0',
+                              fontSize: '0.78rem',
+                              fontWeight: '800',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🎯 Candidate Match {candidateMatch.matchRate}%
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: '700', margin: '2px 0 0' }}>
+                          ตำแหน่งงานที่สมัคร: {app.jobTitle}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                        {app.applicantName || 'ผู้สมัครงาน'}
-                      </h4>
-                      <p style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: '700', margin: '2px 0 0' }}>
-                        ตำแหน่งงานที่สมัคร: {app.jobTitle}
-                      </p>
+                    <div style={{ textAlign: 'right' }}>
+                      <span className="badge badge-accent" style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                        {app.status || 'รอพิจารณา'}
+                      </span>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                        <Calendar style={{ width: '13px', height: '13px' }} /> ยื่นเมื่อ {app.applyDate}
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <span className="badge badge-accent" style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
-                      {app.status || 'รอพิจารณา'}
-                    </span>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                      <Calendar style={{ width: '13px', height: '13px' }} /> ยื่นเมื่อ {app.applyDate}
-                    </div>
-                  </div>
-                </div>
 
                 {/* Contact Information */}
                 {(app.applicantEmail || app.applicantPhone) && (
@@ -423,9 +451,12 @@ export default function ApplicationsPage({ applications = [], currentUser, onNav
 
 
               </div>
-            ))}
+            );
+          })}
           </div>
         )
+
+
       ) : (
         /* APPLICANT VIEW: Show Jobs Applied by Applicant */
         appsState.length === 0 ? (
