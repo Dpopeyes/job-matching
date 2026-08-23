@@ -17,11 +17,17 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
   useEffect(() => {
     if (job && currentUser?.role === 'applicant') {
       setIsLoadingGemini(true);
+      const activeSkills = (userSkills && userSkills.length > 0)
+        ? userSkills
+        : (currentUser.skills && currentUser.skills.length > 0)
+          ? currentUser.skills
+          : ['React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS'];
+
       fetchGeminiAIMatch(job, {
         name: currentUser.name,
         major: currentUser.major,
         university: currentUser.university,
-        skills: userSkills.length > 0 ? userSkills : currentUser.skills,
+        skills: activeSkills,
         bio: currentUser.bio
       }).then(res => {
         setIsLoadingGemini(false);
@@ -31,6 +37,7 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
       }).catch(() => setIsLoadingGemini(false));
     }
   }, [job, currentUser, userSkills]);
+
 
   const handleEdit = () => {
     if (onEditJob) onEditJob(job);
@@ -67,9 +74,16 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const matchInfo = calculateJobMatch(job, currentUser, userSkills);
+  const activeSkills = (userSkills && userSkills.length > 0)
+    ? userSkills
+    : (currentUser?.skills && currentUser.skills.length > 0)
+      ? currentUser.skills
+      : ['React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS'];
+
+  const matchInfo = calculateJobMatch(job, currentUser, activeSkills);
   const matchRate = matchInfo.matchRate;
   const isHighMatch = matchRate >= 85;
+
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '60px' }}>

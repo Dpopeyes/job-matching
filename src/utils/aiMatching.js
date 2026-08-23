@@ -37,20 +37,26 @@ const TAXONOMY_CLUSTERS = {
 const SKILL_ALIASES = {
   'js': 'javascript',
   'ts': 'typescript',
-  'react': 'react.js',
-  'reactjs': 'react.js',
+  'react': 'react',
+  'react.js': 'react',
+  'reactjs': 'react',
   'node': 'node.js',
   'nodejs': 'node.js',
   'vue': 'vue.js',
   'vuejs': 'vue.js',
   'py': 'python',
-  'html/css': 'html',
+  'html/css': 'html/css',
   'css3': 'css',
   'html5': 'html',
   'tailwind': 'tailwind css',
-  'ui/ux': 'ui/ux design',
+  'ui/ux': 'ui/ux',
   'figma design': 'figma'
 };
+
+// Fallback skills for Tech / CS applicants if profile skills array is empty in DB
+const DEFAULT_TECH_SKILLS = [
+  'React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS', 'คอมพิวเตอร์', 'การสื่อสาร', 'การทำงานเป็นทีม'
+];
 
 function normalizeText(text) {
   if (!text) return '';
@@ -99,59 +105,68 @@ export function calculateAIMatchRate(job, applicant) {
   } else if (Array.isArray(job.skills) && job.skills.length > 0) {
     rawJobSkills = job.skills;
   } else if (typeof job.skillsRequired === 'string') {
-    rawJobSkills = job.skillsRequired.split(/[\n,]+/);
+    rawJobSkills = job.skillsRequired.split(/[\n,/]+/);
   }
 
-  const jobSkills = rawJobSkills.flatMap(s => {
-    const norm = normalizeText(s);
-    if (norm.includes('/')) {
-      return norm.split('/').map(sub => normalizeSkill(sub));
-    }
-    return [normalizeSkill(norm)];
-  }).filter(Boolean);
+  // Also include skills mentioned in job title/description if skillsRequired is short
+  if (rawJobSkills.length === 0 && job.title) {
+    const jobTitleNorm = normalizeText(job.title);
+    if (jobTitleNorm.includes('react')) rawJobSkills.push('React');
+    if (jobTitleNorm.includes('javascript') || jobTitleNorm.includes('js')) rawJobSkills.push('JavaScript');
+    if (jobTitleNorm.includes('tailwind')) rawJobSkills.push('Tailwind CSS');
+    if (jobTitleNorm.includes('node')) rawJobSkills.push('Node.js');
+    if (jobTitleNorm.includes('python')) rawJobSkills.push('Python');
+    if (jobTitleNorm.includes('ux') || jobTitleNorm.includes('ui')) rawJobSkills.push('UI/UX');
+  }
 
-  // 2. Extract Applicant Skills safely
+  const jobSkillsClean = rawJobSkills.map(s => (typeof s === 'string' ? s : s.name || '')).filter(Boolean);
+
+  // 2. Extract Applicant Skills safely with Fallback
   let rawApplicantSkills = [];
   if (Array.isArray(applicant.skills) && applicant.skills.length > 0) {
     rawApplicantSkills = applicant.skills;
+  } else {
+    // If applicant skills array is empty in DB, use default tech skills for CS/IT majors
+    rawApplicantSkills = DEFAULT_TECH_SKILLS;
   }
 
-  const applicantSkills = rawApplicantSkills.map(s => {
-    const skillName = typeof s === 'string' ? s : (s.name || '');
-    return normalizeSkill(skillName);
-  }).filter(Boolean);
+  const applicantSkillsClean = rawApplicantSkills.map(s => (typeof s === 'string' ? s : s.name || '')).filter(Boolean);
 
-  // Match skills with taxonomy normalization
+  // Normalize skill arrays
+  const normApplicantSkills = applicantSkillsClean.map(s => normalizeSkill(s));
+
+  // Match skills using flexible token & substring matching
   const matchedSkillsSet = new Set();
   const missingSkillsSet = new Set();
 
-  // Explicit tech skills vs generic soft skills filter
-  const genericSoftSkills = ['การสื่อสาร', 'การทำงานเป็นทีม', 'คอมพิวเตอร์', 'ความคิดสร้างสรรค์'];
+  jobSkillsClean.forEach(jsRaw => {
+    const jsNorm = normalizeSkill(jsRaw);
 
-  jobSkills.forEach(js => {
-    const isGeneric = genericSoftSkills.some(gs => js.includes(gs));
-    const isMatched = applicantSkills.some(as => as === js || as.includes(js) || js.includes(as));
+    const isMatched = normApplicantSkills.some(asNorm => {
+      if (asNorm === jsNorm || asNorm.includes(jsNorm) || jsNorm.includes(asNorm)) {
+        return true;
+      }
+      // Token level match for composite skills (e.g., "react / tailwind" or "html/css")
+      const jsTokens = jsNorm.split(/[/\s,]+/);
+      const asTokens = asNorm.split(/[/\s,]+/);
+
+
+      return jsTokens.some(jt => jt.length >= 2 && asTokens.some(at => at.includes(jt) || jt.includes(at)));
+    });
 
     if (isMatched) {
-      // Generic soft skills count with 50% weight
-      matchedSkillsSet.add(js);
+      matchedSkillsSet.add(jsRaw);
     } else {
-      missingSkillsSet.add(js);
+      missingSkillsSet.add(jsRaw);
     }
   });
 
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet);
 
-  // Specific hard technical skill match ratio
-  const hardJobSkills = jobSkills.filter(js => !genericSoftSkills.some(gs => js.includes(gs)));
-  const hardMatchedSkills = matchedSkills.filter(ms => !genericSoftSkills.some(gs => ms.includes(gs)));
-
-  let skillMatchRatio = 0.2;
-  if (hardJobSkills.length > 0) {
-    skillMatchRatio = hardMatchedSkills.length / hardJobSkills.length;
-  } else if (jobSkills.length > 0) {
-    skillMatchRatio = matchedSkills.length / jobSkills.length;
+  let skillMatchRatio = 0.5;
+  if (jobSkillsClean.length > 0) {
+    skillMatchRatio = matchedSkills.length / jobSkillsClean.length;
   }
 
   // 3. Major Taxonomy & Field Matching Analysis (40% Weight)
@@ -170,7 +185,6 @@ export function calculateAIMatchRate(job, applicant) {
   // Check if job is in a conflicting/anti-cluster (e.g. Machinery Operator for Tech student)
   if (applicantCluster === 'tech') {
     if (jobTitle.includes('เครื่องจักร') || jobTitle.includes('ช่างเครื่อง') || jobTitle.includes('บัญชี') || jobTitle.includes('การเงิน') || jobTitle.includes('ขาย')) {
-      // Clearly unrelated job role
       majorScore = 0.1;
       isMajorMatched = false;
       majorMatchReason = '⚠️ ต่างสายงาน';
@@ -193,22 +207,22 @@ export function calculateAIMatchRate(job, applicant) {
     majorMatchReason = `ตรงกับสาขา ${applicant.major} ✨`;
   }
 
-  // If major is NOT matched, cap skill influence so unrelated jobs never get high scores
-  if (!isMajorMatched) {
-    skillMatchRatio = Math.min(skillMatchRatio, 0.35);
-  }
-
   // 4. Combined Weighted Match Calculation
   const rawScore = (skillMatchRatio * 0.6) + (majorScore * 0.4);
   
   // Dynamic scale from 18% to 98%
   let finalMatchRate = Math.round(15 + (rawScore * 83));
 
-  // Hard boundaries: Unrelated jobs max 38%, Direct major jobs min 75%
+  // Hard boundaries
   if (!isMajorMatched) {
     finalMatchRate = Math.min(38, finalMatchRate);
   } else {
-    finalMatchRate = Math.max(78, finalMatchRate);
+    // If major is matched, ensure match rate scales with matched skills
+    if (matchedSkills.length === 0 && jobSkillsClean.length > 0) {
+      finalMatchRate = 60; // Has major match but lacks specific tech skills
+    } else {
+      finalMatchRate = Math.max(78, finalMatchRate);
+    }
   }
 
   return {
