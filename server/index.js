@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import db, { initDatabase } from './database.js';
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
