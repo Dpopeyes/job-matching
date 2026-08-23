@@ -1,4 +1,4 @@
-// AI-Powered Semantic Job & Candidate Matching Engine (100% Transparent & Mathematically Accurate)
+// AI-Powered Semantic Job & Candidate Matching Engine (Multi-Source Deep Profile Extractor)
 
 // Major & Job Field Taxonomy Clusters for Semantic Distance Calculation
 const TAXONOMY_CLUSTERS = {
@@ -46,14 +46,17 @@ const SKILL_ALIASES = {
   'vuejs': 'vue.js',
   'py': 'python',
   'html/css': 'html/css',
+  'css': 'css',
+  'html': 'html',
   'css3': 'css',
   'html5': 'html',
   'tailwind': 'tailwind css',
+  'tailwindcss': 'tailwind css',
   'ui/ux': 'ui/ux',
   'figma design': 'figma'
 };
 
-// Default Applicant Tech Skills if DB profile skills list is empty
+// Default Tech Skills for Tech/CS applicants if profile is completely empty
 const DEFAULT_TECH_SKILLS = [
   'React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS', 'คอมพิวเตอร์', 'การสื่อสาร', 'การทำงานเป็นทีม'
 ];
@@ -66,6 +69,57 @@ function normalizeText(text) {
 function normalizeSkill(skill) {
   const norm = normalizeText(skill);
   return SKILL_ALIASES[norm] || norm;
+}
+
+// Extract skill tokens from all sources of applicant profile (Skills + Project Tags + Bio)
+function extractAllApplicantSkillTokens(applicant) {
+  const tokens = new Set();
+
+  // 1. Extract from applicant.skills list
+  if (Array.isArray(applicant.skills)) {
+    applicant.skills.forEach(s => {
+      const name = typeof s === 'string' ? s : (s.name || '');
+      if (name) {
+        tokens.add(name);
+        // Split composite phrase (e.g. "เขียนเว็บ React.js (React.js)" -> "React.js", "React", "เขียนเว็บ")
+        name.split(/[\s,()/]+/).forEach(tok => {
+          if (tok.length >= 2) tokens.add(tok);
+        });
+      }
+    });
+  }
+
+  // 2. Extract from applicant.projects tags & descriptions
+  if (Array.isArray(applicant.projects)) {
+    applicant.projects.forEach(p => {
+      const tags = Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(/[\s,#]+/) : []);
+      tags.forEach(t => {
+        if (t) {
+          const cleanTag = t.replace(/^#/, '').trim();
+          if (cleanTag.length >= 2) tokens.add(cleanTag);
+        }
+      });
+      if (p.description) {
+        p.description.split(/[\s,()/]+/).forEach(tok => {
+          if (tok.length >= 2) tokens.add(tok);
+        });
+      }
+    });
+  }
+
+  // 3. Extract from applicant.bio
+  if (applicant.bio) {
+    applicant.bio.split(/[\s,()/]+/).forEach(tok => {
+      if (tok.length >= 2) tokens.add(tok);
+    });
+  }
+
+  // 4. Default fallback if still empty
+  if (tokens.size === 0) {
+    DEFAULT_TECH_SKILLS.forEach(s => tokens.add(s));
+  }
+
+  return Array.from(tokens);
 }
 
 // Determine cluster key of text
@@ -82,9 +136,9 @@ function getClusterKey(textStr) {
 }
 
 /**
- * AI Transparent Match Calculation (70% Skill Score + 30% Major Score)
+ * AI Multi-Source Match Calculation (70% Skill Score + 30% Major Score)
  * @param {Object} job - Job posting details
- * @param {Object} applicant - Applicant profile (major, skills, bio)
+ * @param {Object} applicant - Applicant profile (major, skills, projects, bio)
  * @returns {Object} Match analysis result
  */
 export function calculateAIMatchRate(job, applicant) {
@@ -100,7 +154,7 @@ export function calculateAIMatchRate(job, applicant) {
     };
   }
 
-  // 1. Extract Required Skills from Job safely
+  // 1. Extract Required Skills from Job
   let rawJobSkills = [];
   if (Array.isArray(job.skillsRequired) && job.skillsRequired.length > 0) {
     rawJobSkills = job.skillsRequired;
@@ -123,16 +177,9 @@ export function calculateAIMatchRate(job, applicant) {
 
   const jobSkillsClean = rawJobSkills.map(s => (typeof s === 'string' ? s : s.name || '')).filter(Boolean);
 
-  // 2. Extract Applicant Skills safely with Fallback
-  let rawApplicantSkills = [];
-  if (Array.isArray(applicant.skills) && applicant.skills.length > 0) {
-    rawApplicantSkills = applicant.skills;
-  } else {
-    rawApplicantSkills = DEFAULT_TECH_SKILLS;
-  }
-
-  const applicantSkillsClean = rawApplicantSkills.map(s => (typeof s === 'string' ? s : s.name || '')).filter(Boolean);
-  const normApplicantSkills = applicantSkillsClean.map(s => normalizeSkill(s));
+  // 2. Extract Applicant Skills from ALL sources (Skills List + Project Tags + Bio)
+  const rawApplicantSkills = extractAllApplicantSkillTokens(applicant);
+  const normApplicantSkills = rawApplicantSkills.map(s => normalizeSkill(s));
 
   // Match skills using flexible token & substring matching
   const matchedSkillsSet = new Set();
@@ -160,12 +207,12 @@ export function calculateAIMatchRate(job, applicant) {
   const matchedSkills = Array.from(matchedSkillsSet);
   const missingSkills = Array.from(missingSkillsSet);
 
-  // Skill Score (0% to 100%)
+  // Skill Score Calculation (0% to 100%)
   let skillRatio = 0;
   if (jobSkillsClean.length > 0) {
     skillRatio = matchedSkills.length / jobSkillsClean.length;
   } else {
-    skillRatio = 0.5; // If job lists no specific skills required
+    skillRatio = 0.5;
   }
   const skillScore = Math.round(skillRatio * 100);
 
@@ -178,7 +225,7 @@ export function calculateAIMatchRate(job, applicant) {
   const applicantCluster = getClusterKey(applicantMajor);
   const jobTitleCluster = getClusterKey(jobTitle) || getClusterKey(jobCategory) || getClusterKey(jobDescription);
 
-  let majorScore = 0; // 0% for totally different major
+  let majorScore = 0;
   let isMajorMatched = false;
   let majorMatchReason = '⚠️ ต่างสายงาน';
 
@@ -209,7 +256,7 @@ export function calculateAIMatchRate(job, applicant) {
   // 4. Combined Weighted Match Rate: (Skill Score * 70%) + (Major Score * 30%)
   let finalMatchRate = Math.round((skillScore * 0.7) + (majorScore * 0.3));
 
-  // Minimum floor 15% for any listing
+  // Minimum floor 15%
   finalMatchRate = Math.max(15, Math.min(100, finalMatchRate));
 
   return {

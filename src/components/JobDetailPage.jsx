@@ -17,19 +17,20 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
   useEffect(() => {
     if (job && currentUser?.role === 'applicant') {
       setIsLoadingGemini(true);
-      const activeSkills = (userSkills && userSkills.length > 0)
-        ? userSkills
-        : (currentUser.skills && currentUser.skills.length > 0)
-          ? currentUser.skills
-          : ['React', 'JavaScript', 'HTML/CSS', 'Git', 'Tailwind CSS'];
+      const combinedSkills = [
+        ...(Array.isArray(userSkills) ? userSkills : []),
+        ...(Array.isArray(currentUser.skills) ? currentUser.skills : [])
+      ];
 
       fetchGeminiAIMatch(job, {
         name: currentUser.name,
         major: currentUser.major,
         university: currentUser.university,
-        skills: activeSkills,
+        skills: combinedSkills,
+        projects: currentUser.projects || [],
         bio: currentUser.bio
       }).then(res => {
+
         setIsLoadingGemini(false);
         if (res && res.analysis) {
           setGeminiAnalysis(res.analysis);

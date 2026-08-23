@@ -9,19 +9,26 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
       matchRate: job?.matchRate || 85,
       matchedSkills: [],
       missingSkills: [],
-      isMajorMatched: false
+      isMajorMatched: false,
+      skillScore: 0,
+      majorScore: 0
     };
   }
 
-  // Build composite applicant object
-  let skills = userSkills;
-  if (!skills || skills.length === 0) {
-    skills = currentUser.skills || ['React', 'JavaScript', 'HTML/CSS', 'Git'];
+  // Combine userSkills from portfolio with currentUser skills
+  let combinedSkills = [];
+  if (Array.isArray(userSkills) && userSkills.length > 0) {
+    combinedSkills = [...userSkills];
+  }
+  if (Array.isArray(currentUser.skills) && currentUser.skills.length > 0) {
+    combinedSkills = [...combinedSkills, ...currentUser.skills];
   }
 
   const applicant = {
     ...currentUser,
-    skills: skills
+    skills: combinedSkills,
+    projects: currentUser.projects || [],
+    bio: currentUser.bio || ''
   };
 
   const aiResult = calculateAIMatchRate(job, applicant);
@@ -31,7 +38,9 @@ export function calculateJobMatch(job, currentUser, userSkills = []) {
     matchedSkills: aiResult.matchedSkills,
     missingSkills: aiResult.missingSkills,
     isMajorMatched: aiResult.isMajorMatched,
-    majorMatchReason: aiResult.majorMatchReason
+    majorMatchReason: aiResult.majorMatchReason,
+    skillScore: aiResult.skillScore,
+    majorScore: aiResult.majorScore
   };
 }
 
