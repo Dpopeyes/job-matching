@@ -599,7 +599,8 @@ app.delete('/api/skills/:skillId', (req, res) => {
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+
 
       const prompt = `
     คุณคือ AI HR Specialist และระบบแมตช์งานอัจฉริยะภาษาไทย
