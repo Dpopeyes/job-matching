@@ -129,6 +129,7 @@ export function initDatabase() {
   ensureColumnExists('jobs', 'description', 'TEXT');
   ensureColumnExists('jobs', 'employerId', 'TEXT');
   ensureColumnExists('jobs', 'vacancies', 'INTEGER DEFAULT 1');
+  ensureColumnExists('jobs', 'employerType', "TEXT DEFAULT 'corporate'");
 
   ensureColumnExists('users', 'role', "TEXT DEFAULT 'applicant'");
   ensureColumnExists('users', 'studentId', 'TEXT');
@@ -139,14 +140,19 @@ export function initDatabase() {
   ensureColumnExists('users', 'qrCodeUrl', 'TEXT');
   ensureColumnExists('users', 'phone', 'TEXT');
   ensureColumnExists('users', 'faceKYCVerified', 'INTEGER DEFAULT 1');
+  ensureColumnExists('users', 'employerType', "TEXT DEFAULT 'corporate'");
+  ensureColumnExists('users', 'website', 'TEXT');
+  ensureColumnExists('users', 'createdAt', 'TEXT');
 
   ensureColumnExists('applications', 'jobTitle', 'TEXT');
   ensureColumnExists('applications', 'company', 'TEXT');
+  ensureColumnExists('applications', 'applicantName', 'TEXT');
   ensureColumnExists('applications', 'coverNote', 'TEXT');
   ensureColumnExists('applications', 'applyDate', 'TEXT');
   ensureColumnExists('applications', 'status', "TEXT DEFAULT 'กำลังพิจารณา (Under Review)'");
   ensureColumnExists('applications', 'interviewDate', 'TEXT');
   ensureColumnExists('applications', 'interviewNote', 'TEXT');
+
 
   ensureColumnExists('jobs', 'approvalStatus', "TEXT DEFAULT 'approved'");
 
@@ -174,6 +180,67 @@ export function initDatabase() {
     }
   } catch (err) {
     console.error('Error seeding admin user:', err);
+  }
+
+  // Create default live support job in jobs table if not exists
+  try {
+    const supportJobExists = db.prepare('SELECT id FROM jobs WHERE id = ?').get('job-admin-support');
+    if (!supportJobExists) {
+      db.prepare(`
+        INSERT INTO jobs (id, title, company, employerId, description, category, type, salary)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'job-admin-support',
+        '💬 ติดต่อแอดมินระบบ (Live Admin Support)',
+        'ศูนย์ช่วยเหลือ BlueHouse Admin Team',
+        'admin-001',
+        'ช่องทางสนทนาสดติดต่อแอดมินผู้ดูแลระบบ',
+        'support',
+        'Full-time',
+        'N/A'
+      );
+      console.log('📡 Seeded support job entry (job-admin-support)');
+    }
+  } catch (err) {
+    console.error('Error seeding support job entry:', err);
+  }
+
+  // Create default live support chat ticket if not exists
+  try {
+    const supportAppExists = db.prepare('SELECT id FROM applications WHERE id = ?').get('app-support-default');
+    if (!supportAppExists) {
+      const applyDate = new Date().toISOString().split('T')[0];
+      db.prepare(`
+        INSERT INTO applications (id, jobId, jobTitle, company, userId, applicantName, coverNote, applyDate, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'app-support-default',
+        'job-admin-support',
+        '💬 ติดต่อแอดมินระบบ (Live Admin Support)',
+        'ศูนย์ช่วยเหลือ BlueHouse Admin Team',
+        'user-001',
+        'สมาชิกผู้ติดต่อ (Live Support)',
+        'เปิดการเชื่อมต่อ Live Chat กับแอดมินผู้ดูแลระบบ',
+        applyDate,
+        'แอดมินสแตนด์บาย 🟢'
+      );
+
+      db.prepare(`
+        INSERT INTO messages (id, applicationId, senderId, senderName, content, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        'msg-support-default-1',
+        'app-support-default',
+        'user-001',
+        'สมาชิกผู้ติดต่อ',
+        'สวัสดีครับแอดมิน! 💬 ผมต้องการติดต่อสอบถามข้อมูลกับแอดมินตัวจริงครับ',
+        new Date().toISOString()
+      );
+
+      console.log('📡 Seeded default Live Support Chat ticket (app-support-default)');
+    }
+  } catch (err) {
+    console.error('Error seeding default support chat application:', err);
   }
 }
 

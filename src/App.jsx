@@ -11,7 +11,7 @@ import HotChat from './components/HotChat';
 import HelpCenterModal from './components/HelpCenterModal';
 import PostJobModal from './components/PostJobModal';
 import AdminDashboard from './components/AdminDashboard';
-import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications, fetchUserPortfolio } from './data/api';
+import { fetchJobs, deleteJob, loginUser, submitApplication, fetchUserApplications, fetchEmployerApplications, fetchAdminApplications, fetchUserPortfolio } from './data/api';
 
 
 
@@ -124,12 +124,14 @@ export default function App() {
     }
   };
 
-  // Load Latest Applications from SQLite DB Server (handles both applicant and employer roles)
+  // Load Latest Applications from SQLite DB Server (handles applicant, employer, and admin roles)
   const loadApplicationsData = async () => {
     if (!currentUser?.id) return;
-    const dbApps = currentUser.role === 'employer'
-      ? await fetchEmployerApplications(currentUser.id)
-      : await fetchUserApplications(currentUser.id);
+    const dbApps = currentUser.role === 'admin'
+      ? await fetchAdminApplications()
+      : (currentUser.role === 'employer'
+          ? await fetchEmployerApplications(currentUser.id)
+          : await fetchUserApplications(currentUser.id));
     if (dbApps) {
       setApplications(dbApps);
     }
@@ -352,12 +354,20 @@ export default function App() {
         />
       )}
 
-      {/* Grab-Style Help Center Floating Widget (Positioned right above HotChat floating button) */}
-      <HelpCenterModal 
-        currentUser={currentUser}
-        onNavigateAdmin={() => handleTabChange('admin')}
-        onNavigateProfile={() => handleTabChange('profile')}
-      />
+      {/* Grab-Style Help Center Floating Widget (Hidden for Admin role, visible for applicants & employers) */}
+      {currentUser?.role !== 'admin' && (
+        <HelpCenterModal 
+          currentUser={currentUser}
+          onNavigateAdmin={() => handleTabChange('admin')}
+          onNavigateProfile={() => handleTabChange('profile')}
+          onOpenLiveAdminChat={(adminChatSession) => {
+            setActiveChatApp(adminChatSession);
+            setIsChatOpen(true);
+          }}
+        />
+      )}
+
+
 
       {/* HotChat Floating Widget */}
       <HotChat 

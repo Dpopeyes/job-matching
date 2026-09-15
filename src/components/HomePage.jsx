@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit, Check } from 'lucide-react';
+import { Search, MapPin, Sparkles, Building, ChevronRight, SlidersHorizontal, Plus, Trash2, Briefcase, Edit, Check, CheckCircle2 } from 'lucide-react';
 import { THAI_PROVINCES } from '../data/provinces';
 import { calculateJobMatch } from '../utils/matching';
 import { translations } from '../utils/i18n';
@@ -293,9 +293,52 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                       style={{ width: '46px', height: '46px', minWidth: '46px', minHeight: '46px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
                     />
                     <div>
-                      <h3 style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
-                        {job.title}
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a', margin: 0, lineHeight: 1.3 }}>
+                          {job.title}
+                        </h3>
+                        {(job.approvalStatus === 'approved' || !job.approvalStatus) && (
+                          <span 
+                            title="ผ่านการตรวจสอบและอนุมัติโดยผู้ดูแลระบบเรียบร้อย (Verified Job Post)"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '0.65rem',
+                              fontWeight: '800',
+                              background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                              color: '#0369a1',
+                              border: '1px solid #7dd3fc',
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 1px 2px rgba(3, 105, 161, 0.08)'
+                            }}
+                          >
+                            <CheckCircle2 style={{ width: '12px', height: '12px', color: '#0284c7' }} /> Verified
+                          </span>
+                        )}
+                        {job.approvalStatus === 'pending' && (
+                          <span 
+                            title="อยู่ระหว่างการตรวจสอบและรอการอนุมัติจากแอดมิน"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              fontSize: '0.65rem',
+                              fontWeight: '800',
+                              background: '#fffbeb',
+                              color: '#b45309',
+                              border: '1px solid #fcd34d',
+                              padding: '2px 7px',
+                              borderRadius: '999px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            ⏳ รออนุมัติ
+                          </span>
+                        )}
+                      </div>
                       <p style={{ fontSize: '0.8rem', color: '#475569', margin: '4px 0 0 0', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
                         <Building style={{ width: '13px', height: '13px', color: '#2563eb' }} /> {job.company}
                       </p>

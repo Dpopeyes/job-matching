@@ -375,10 +375,26 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }) {
                   type="email"
                   value={employerData.email}
                   onChange={(e) => setEmployerData({ ...employerData, email: e.target.value })}
-                  placeholder="hr@company.co.th"
+                  placeholder="เช่น hr@company.co.th หรือ email@gmail.com"
                   className="input-field"
                   required
                 />
+                {employerData.email && (
+                  <div style={{ marginTop: '6px', fontSize: '0.72rem', fontWeight: '700' }}>
+                    {(employerData.email.toLowerCase().endsWith('@gmail.com') || 
+                      employerData.email.toLowerCase().endsWith('@hotmail.com') || 
+                      employerData.email.toLowerCase().endsWith('@yahoo.com') || 
+                      employerData.email.toLowerCase().endsWith('@outlook.com')) ? (
+                      <span style={{ color: '#475569', background: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        👤 นายจ้างทั่วไป (General Employer) — สำหรับบุคคลธรรมดา/ฟรีแลนซ์
+                      </span>
+                    ) : (
+                      <span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 8px', borderRadius: '6px', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        ✓ 🏢 ตรวจพบโดเมนบริษัท! รับตราสัญลักษณ์ Verified Corporate Employer
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

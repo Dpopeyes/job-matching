@@ -31,9 +31,11 @@ async function fetchUserById(userId) {
 
 const TABS = [
   { key: 'overview',  label: 'ภาพรวม',          icon: ShieldCheck,    color: '#7c3aed' },
-  { key: 'rejected',  label: 'ปฏิเสธแล้ว',       icon: AlertTriangle,  color: '#dc2626' },
-  { key: 'chats',     label: 'ห้องสนทนา',         icon: MessageSquare,  color: '#0d9488' },
-  { key: 'users',     label: 'ผู้ใช้ทั้งหมด',    icon: Users,          color: '#db2777' },
+  { key: 'pending',   label: '⏳ รออนุมัติงาน',    icon: Clock,          color: '#f59e0b' },
+  { key: 'approved',  label: '✅ อนุมัติแล้ว',     icon: CheckCircle2,   color: '#10b981' },
+  { key: 'rejected',  label: '❌ ปฏิเสธแล้ว',     icon: AlertTriangle,  color: '#dc2626' },
+  { key: 'chats',     label: '💬 ห้องสนทนา',     icon: MessageSquare,  color: '#0d9488' },
+  { key: 'users',     label: '👥 ผู้ใช้ทั้งหมด',   icon: Users,          color: '#db2777' },
 ];
 
 export default function AdminDashboard({ currentUser, onNavigateProfile }) {
@@ -71,7 +73,15 @@ export default function AdminDashboard({ currentUser, onNavigateProfile }) {
     setLoading(false);
   };
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { 
+    loadAll(); 
+    const interval = setInterval(async () => {
+      const a = await fetchAdminApplications();
+      if (a) setApplications(a);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   /* ── Chat polling ── */
   useEffect(() => {
@@ -221,9 +231,11 @@ export default function AdminDashboard({ currentUser, onNavigateProfile }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           {[
             { label: 'โพสต์ทั้งหมด', value: jobs.length, color: '#2563eb', bg: '#eff6ff', icon: Briefcase },
-            { label: 'ปฏิเสธแล้ว', value: rejected.length, color: '#dc2626', bg: '#fef2f2', icon: AlertTriangle },
-            { label: 'ห้องสนทนา', value: applications.length, color: '#0d9488', bg: '#f0fdfa', icon: MessageSquare },
-            { label: 'ผู้ใช้งาน', value: users.length, color: '#7c3aed', bg: '#f5f3ff', icon: Users },
+            { label: '⏳ รออนุมัติ', value: pending.length, color: '#f59e0b', bg: '#fffbeb', icon: Clock },
+            { label: '✅ อนุมัติแล้ว', value: approved.length, color: '#10b981', bg: '#ecfdf5', icon: CheckCircle2 },
+            { label: '❌ ปฏิเสธแล้ว', value: rejected.length, color: '#dc2626', bg: '#fef2f2', icon: AlertTriangle },
+            { label: '💬 ห้องสนทนา', value: applications.length, color: '#0d9488', bg: '#f0fdfa', icon: MessageSquare },
+            { label: '👥 ผู้ใช้งาน', value: users.length, color: '#7c3aed', bg: '#f5f3ff', icon: Users },
           ].map((card, i) => {
             const Icon = card.icon;
             return (
@@ -340,8 +352,8 @@ export default function AdminDashboard({ currentUser, onNavigateProfile }) {
                   <div style={{ flex: 1, textAlign: 'left' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
                       <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>{job.title}</h3>
-                      <span style={{ fontSize: '0.7rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', background: borderColor + '18', color: borderColor }}>
-                        {activeTab === 'pending' ? '⏳ รอการอนุมัติ' : activeTab === 'approved' ? '✅ อนุมัติแล้ว' : '❌ ปฏิเสธแล้ว'}
+                      <span style={{ fontSize: '0.7rem', fontWeight: '800', padding: '3px 10px', borderRadius: '999px', background: borderColor + '18', color: borderColor, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {activeTab === 'pending' ? '⏳ รอการอนุมัติ' : activeTab === 'approved' ? <><CheckCircle2 style={{ width: '12px', height: '12px', color: '#10b981' }} /> อนุมัติแล้ว (Verified)</> : '❌ ปฏิเสธแล้ว'}
                       </span>
                     </div>
                     <div style={{ display: 'flex', gap: '14px', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>

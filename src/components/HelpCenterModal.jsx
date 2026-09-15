@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HelpCircle, Bot, X, Send, ShieldCheck, Sparkles, MessageSquare, CheckCircle2, Headphones, AlertCircle, ExternalLink, ChevronRight } from 'lucide-react';
 
-export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNavigateProfile }) {
+export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNavigateProfile, onOpenLiveAdminChat }) {
+  // Hide HelpBot completely for Admin role (Admin manages chats via Admin Dashboard / HotChat)
+  if (currentUser?.role === 'admin') return null;
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isLiveAdminMode, setIsLiveAdminMode] = useState(false);
   const [adminReplyCount, setAdminReplyCount] = useState(0);
+
 
   const messagesEndRef = useRef(null);
 
@@ -61,7 +65,7 @@ export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNaviga
     }, 800);
   };
 
-  const handleTransferToLiveAdmin = () => {
+  const handleTransferToLiveAdmin = async () => {
     const userMsg = {
       id: `u-${Date.now()}`,
       sender: 'user',
@@ -72,39 +76,58 @@ export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNaviga
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
+    const supportAppId = `app-support-${currentUser?.id || 'user-001'}`;
+    const supportApp = {
+      id: supportAppId,
+      jobId: 'job-admin-support',
+      jobTitle: '💬 ติดต่อแอดมินระบบ (Live Admin Support)',
+      company: 'ศูนย์ช่วยเหลือ BlueHouse Admin Team',
+      userId: currentUser?.id || 'user-001',
+      applicantName: currentUser?.name || 'สมาชิกผู้ติดต่อ',
+      applyDate: 'วันนี้',
+      status: 'แอดมินสแตนด์บาย 🟢'
+    };
+
+    // 1. Save Support Chat Application to SQLite Database
+    try {
+      await fetch('http://localhost:3001/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: supportAppId,
+          jobId: 'job-admin-support',
+          jobTitle: '💬 ติดต่อแอดมินระบบ (Live Admin Support)',
+          company: 'ศูนย์ช่วยเหลือ BlueHouse Admin Team',
+          userId: currentUser?.id || 'user-001',
+          coverNote: 'เปิดการเชื่อมต่อ Live Chat กับแอดมินผู้ดูแลระบบ'
+        })
+      });
+
+      // 2. Send initial greeting message to DB for admin to read
+      await fetch(`http://localhost:3001/api/applications/${supportAppId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderId: currentUser?.id || 'user-001',
+          senderName: currentUser?.name || 'สมาชิก',
+          content: 'สวัสดีครับแอดมิน! 💬 ผมต้องการติดต่อสอบถามข้อมูลกับแอดมินตัวจริงครับ'
+        })
+      });
+    } catch (err) {
+      console.warn('Error initializing Live Admin Chat backend:', err);
+    }
+
+    // 3. Switch to HotChat Live Admin Chat window
     setTimeout(() => {
       setIsTyping(false);
-      setIsLiveAdminMode(true);
+      setIsOpen(false); // Close HelpBot modal
 
-      const transferMsg = {
-        id: `b-transfer-${Date.now()}`,
-        sender: 'bot',
-        text: `รับทราบครับ! 🛡️ ผมได้ส่งเรื่องโอนสายการสนทนาไปยัง **"ผู้ดูแลระบบ (Live Admin Support)"** เรียบร้อยแล้ว\n\n🟢 สถานะ: แอดมินได้รับแจ้งเตือนแล้ว และกำลังเข้าสู่ห้องแชทเพื่อโต้ตอบกับคุณ ${currentUser?.name || 'สมาชิก'} ในขณะนี้ครับ คุณสามารถพิมพ์คำถามหรือแจ้งปัญหาไว้ได้เลยครับ`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setMessages(prev => [...prev, transferMsg]);
-
-      // Simulate live Admin response after 3 seconds for demo
-      setTimeout(() => {
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          setAdminReplyCount(prev => prev + 1);
-          setMessages(prev => [
-            ...prev,
-            {
-              id: `admin-reply-${Date.now()}`,
-              sender: 'admin',
-              text: `สวัสดีครับคุณ ${currentUser?.name || 'สมาชิก'}! 🛡️ ผม "แอดมินระบบ BlueHouse" เข้ามาดูแลห้องแชทแล้วครับ มีเรื่องใดให้ผมช่วยเหลือหรือตรวจสอบเพิ่มเติมแจ้งไว้ได้เลยครับ!`,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]);
-        }, 1500);
-      }, 2500);
-
-    }, 1000);
+      if (onOpenLiveAdminChat) {
+        onOpenLiveAdminChat(supportApp);
+      }
+    }, 600);
   };
+
 
   const handleSendMessage = (text) => {
     if (!text.trim()) return;

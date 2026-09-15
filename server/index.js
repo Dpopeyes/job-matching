@@ -31,6 +31,16 @@ function safeJsonParse(str, fallback = []) {
   }
 }
 
+// Helper to determine employer type from email domain
+function determineEmployerType(email, customType) {
+  if (customType) return customType;
+  if (!email) return 'corporate';
+  const lower = email.toLowerCase().trim();
+  const freeDomains = ['@gmail.com', '@hotmail.com', '@yahoo.com', '@outlook.com', '@live.com', '@icloud.com'];
+  const isFree = freeDomains.some(d => lower.endsWith(d));
+  return isFree ? 'individual' : 'corporate';
+}
+
 // Health Check & Stats
 app.get('/api/health', (req, res) => {
   const userCount = db.prepare('SELECT count(*) as count FROM users').get().count;
@@ -65,7 +75,7 @@ app.get('/api/jobs', (req, res) => {
       query += ` WHERE employerId = ? ORDER BY jobs.rowid DESC`;
       params.push(employerId);
     } else {
-      query += ` WHERE (approvalStatus = 'approved' OR approvalStatus IS NULL OR approvalStatus = 'pending') ORDER BY jobs.rowid DESC`;
+      query += ` WHERE (approvalStatus = 'approved' OR approvalStatus IS NULL) ORDER BY jobs.rowid DESC`;
     }
 
     const jobs = db.prepare(query).all(...params);
@@ -97,25 +107,34 @@ app.get('/api/jobs', (req, res) => {
 // POST New Job into Universal Shared SQLite DB
 app.post('/api/jobs', (req, res) => {
   try {
-    const { id, title, company, logo, location, category, type, salary, experienceLevel, skillsRequired, qualifications, description, employerId, vacancies } = req.body;
+    const { id, title, company, logo, location, category, type, salary, experienceLevel, skillsRequired, qualifications, description, employerId, vacancies, approvalStatus: customStatus } = req.body;
     const jobId = id || `job-${Date.now()}`;
     const postedDate = 'วันนี้';
     const matchRate = 95;
+    // Default to 'pending' if posted by employer, or 'approved' if posted by admin/system
+    const approvalStatus = customStatus || (employerId ? 'pending' : 'approved');
+
+    let empType = req.body.employerType;
+    if (!empType && employerId) {
+      const empUser = db.prepare('SELECT employerType, email FROM users WHERE id = ?').get(employerId);
+      if (empUser) empType = empUser.employerType || determineEmployerType(empUser.email);
+    }
+    empType = empType || 'corporate';
 
     const skillsJson = JSON.stringify(Array.isArray(skillsRequired) ? skillsRequired : ['การสื่อสาร']);
     const qualJson = JSON.stringify(Array.isArray(qualifications) ? qualifications : ['ปริญญาตรีทุกสาขา']);
     const numVacancies = parseInt(vacancies, 10) || 1;
 
     db.prepare(`
-      INSERT INTO jobs (id, title, company, logo, location, category, type, salary, experienceLevel, matchRate, postedDate, skillsRequired, qualifications, description, employerId, vacancies, approvalStatus)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO jobs (id, title, company, logo, location, category, type, salary, experienceLevel, matchRate, postedDate, skillsRequired, qualifications, description, employerId, vacancies, approvalStatus, employerType)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       jobId, title, company,
       logo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60',
       location || 'กรุงเทพมหานคร', category || 'all', type || 'งานเต็มเวลา (Entry-level)',
       salary || '20,000 - 30,000 บาท/เดือน', experienceLevel || 'เด็กจบใหม่ยินดีรับ', matchRate, postedDate,
       skillsJson, qualJson, description || 'รายละเอียดตำแหน่งงาน', employerId || null, numVacancies,
-      'approved'
+      approvalStatus, empType
     );
 
     const savedJob = {
@@ -128,7 +147,8 @@ app.post('/api/jobs', (req, res) => {
       description: description || 'รายละเอียดตำแหน่งงาน',
       employerId: employerId || null,
       vacancies: numVacancies,
-      approvalStatus: 'approved'
+      approvalStatus,
+      employerType: empType
     };
 
 
@@ -140,21 +160,20 @@ app.post('/api/jobs', (req, res) => {
   }
 });
 
-// PUT Edit Job in SQLite DB
+// PUT Edit Existing Job
 app.put('/api/jobs/:id', (req, res) => {
   try {
-    const { title, company, location, category, type, salary, skillsRequired, qualifications, description, vacancies } = req.body;
-    const skillsJson = JSON.stringify(Array.isArray(skillsRequired) ? skillsRequired : []);
-    const qualJson = JSON.stringify(Array.isArray(qualifications) ? qualifications : []);
-    const numVacancies = parseInt(vacancies, 10) || 1;
+    const { title, company, location, category, type, salary, description, skillsRequired, qualifications, vacancies } = req.body;
+    const skillsJson = JSON.stringify(Array.isArray(skillsRequired) ? skillsRequired : ['การสื่อสาร']);
+    const qualJson = JSON.stringify(Array.isArray(qualifications) ? qualifications : ['ปริญญาตรีทุกสาขา']);
 
     db.prepare(`
       UPDATE jobs 
-      SET title = ?, company = ?, location = ?, category = ?, type = ?, salary = ?, skillsRequired = ?, qualifications = ?, description = ?, vacancies = ?
+      SET title = ?, company = ?, location = ?, category = ?, type = ?, salary = ?, description = ?, skillsRequired = ?, qualifications = ?, vacancies = ?
       WHERE id = ?
-    `).run(title, company, location, category, type, salary, skillsJson, qualJson, description, numVacancies, req.params.id);
+    `).run(title, company, location, category, type, salary, description, skillsJson, qualJson, parseInt(vacancies, 10) || 1, req.params.id);
 
-    console.log(`✅ Updated job in SQLite DB: ${title} (${company})`);
+    console.log(`✏️ Updated job in SQLite DB: ${req.params.id}`);
     res.json({ success: true, message: 'แก้ไขประกาศตำแหน่งงานสำเร็จ' });
   } catch (err) {
     console.error('Error PUT /api/jobs/:id:', err);
@@ -179,7 +198,7 @@ app.delete('/api/jobs/:id', (req, res) => {
 // ----------------------------------------------------
 app.post('/api/auth/register', (req, res) => {
   try {
-    const { name, email, password, studentId, university, major, skills, role } = req.body;
+    const { name, email, password, studentId, university, major, skills, role, employerType } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'กรุณากรอกชื่อ อีเมล และรหัสผ่าน' });
     }
@@ -191,13 +210,14 @@ app.post('/api/auth/register', (req, res) => {
 
     const id = `user-${Date.now()}`;
     const userRole = role || 'applicant';
+    const empType = userRole === 'employer' ? determineEmployerType(email, employerType) : 'corporate';
     const avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
     const bio = `ผู้สำเร็จการศึกษาใหม่จาก ${university || 'มหาวิทยาลัย'} สาขา ${major || 'ทั่วไป'}`;
 
     db.prepare(`
-      INSERT INTO users (id, name, email, password, role, studentId, university, major, avatar, bio, faceKYCVerified)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, name, email, password, userRole, studentId || '', university || '', major || '', avatar, bio, 1);
+      INSERT INTO users (id, name, email, password, role, studentId, university, major, avatar, bio, faceKYCVerified, employerType)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, name, email, password, userRole, studentId || '', university || '', major || '', avatar, bio, 1, empType);
 
     const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     res.status(201).json({ success: true, user: { ...newUser, skills: [], projects: [] } });
@@ -219,17 +239,33 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Submit Application
+// Submit or Create Application / Support Ticket
 app.post('/api/applications', (req, res) => {
   try {
-    const { jobId, jobTitle, company, userId, coverNote } = req.body;
-    const id = `app-${Date.now()}`;
+    const { id: customId, jobId, jobTitle, company, userId, applicantName, coverNote } = req.body;
+    const id = customId || `app-${Date.now()}`;
     const applyDate = new Date().toISOString().split('T')[0];
 
+    // Ensure job-admin-support exists in jobs table if it's a support chat application
+    if (jobId === 'job-admin-support') {
+      const jobExists = db.prepare('SELECT id FROM jobs WHERE id = ?').get('job-admin-support');
+      if (!jobExists) {
+        db.prepare(`
+          INSERT INTO jobs (id, title, company, employerId, description, category, type, salary)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run('job-admin-support', '💬 ติดต่อแอดมินระบบ (Live Admin Support)', 'ศูนย์ช่วยเหลือ BlueHouse Admin Team', 'admin-001', 'ช่องทางสนทนาสดติดต่อแอดมินผู้ดูแลระบบ', 'support', 'Full-time', 'N/A');
+      }
+    }
+
+    const existing = db.prepare('SELECT id FROM applications WHERE id = ?').get(id);
+    if (existing) {
+      return res.json({ success: true, id, message: 'มีรายการนี้ในระบบแล้ว' });
+    }
+
     db.prepare(`
-      INSERT INTO applications (id, jobId, jobTitle, company, userId, coverNote, applyDate)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, jobId, jobTitle, company, userId || 'user-001', coverNote || '', applyDate);
+      INSERT INTO applications (id, jobId, jobTitle, company, userId, applicantName, coverNote, applyDate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, jobId, jobTitle, company, userId || 'user-001', applicantName || 'สมาชิกผู้ติดต่อ', coverNote || '', applyDate);
 
     res.status(201).json({ success: true, id, message: 'ยื่นใบสมัครสำเร็จ' });
   } catch (err) {
@@ -237,12 +273,13 @@ app.post('/api/applications', (req, res) => {
   }
 });
 
+
 app.get('/api/applications/user/:userId', (req, res) => {
   try {
     const apps = db.prepare(`
-      SELECT applications.*, users.name as applicantName
+      SELECT applications.*, COALESCE(NULLIF(users.name, ''), applications.applicantName, 'สมาชิกผู้ติดต่อ') as applicantName
       FROM applications
-      JOIN users ON applications.userId = users.id
+      LEFT JOIN users ON applications.userId = users.id
       WHERE applications.userId = ?
       ORDER BY applications.rowid DESC
     `).all(req.params.userId);
@@ -256,7 +293,7 @@ app.get('/api/applications/user/:userId', (req, res) => {
 app.get('/api/applications/employer/:employerId', (req, res) => {
   try {
     const apps = db.prepare(`
-      SELECT applications.*, users.name as applicantName, users.email as applicantEmail, users.phone as applicantPhone
+      SELECT applications.*, COALESCE(NULLIF(users.name, ''), applications.applicantName, 'สมาชิกผู้ติดต่อ') as applicantName, users.email as applicantEmail, users.phone as applicantPhone
       FROM applications
       JOIN jobs ON applications.jobId = jobs.id
       JOIN users ON applications.userId = users.id
@@ -275,13 +312,13 @@ app.get('/api/applications/admin', (req, res) => {
   try {
     const apps = db.prepare(`
       SELECT applications.*, 
-             users.name as applicantName, 
+             COALESCE(NULLIF(users.name, ''), applications.applicantName, 'สมาชิกผู้ติดต่อ') as applicantName, 
              users.email as applicantEmail, 
              users.phone as applicantPhone,
-             jobs.employerId
+             COALESCE(jobs.employerId, 'admin') as employerId
       FROM applications
-      JOIN jobs ON applications.jobId = jobs.id
-      JOIN users ON applications.userId = users.id
+      LEFT JOIN jobs ON applications.jobId = jobs.id
+      LEFT JOIN users ON applications.userId = users.id
       ORDER BY applications.rowid DESC
     `).all();
     res.json(apps);
@@ -290,6 +327,8 @@ app.get('/api/applications/admin', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 // PUT Update Job Approval Status (for Admin)
 app.put('/api/jobs/:id/approval', (req, res) => {
@@ -364,9 +403,10 @@ app.post('/api/applications/:appId/messages', (req, res) => {
 // GET All Users (Admin only — list all users)
 app.get('/api/users', (req, res) => {
   try {
-    const users = db.prepare('SELECT id, name, email, role, university, major, avatar, bio, phone, website FROM users ORDER BY createdAt DESC').all();
+    const users = db.prepare('SELECT id, name, email, role, studentId, university, major, avatar, bio, phone, website, employerType FROM users ORDER BY rowid DESC').all();
     res.json(users);
   } catch (err) {
+    console.error('Error GET /api/users:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -374,11 +414,12 @@ app.get('/api/users', (req, res) => {
 // GET Single User by ID (for admin profile inspection)
 app.get('/api/users/:userId', (req, res) => {
   try {
-    const user = db.prepare('SELECT id, name, email, role, studentId, university, major, avatar, bio, phone, website FROM users WHERE id = ?').get(req.params.userId);
+    const user = db.prepare('SELECT id, name, email, role, studentId, university, major, avatar, bio, phone, website, employerType FROM users WHERE id = ?').get(req.params.userId);
     if (!user) return res.status(404).json({ error: 'ไม่พบข้อมูลผู้ใช้' });
     const skills = db.prepare('SELECT id, name, level FROM skills WHERE userId = ?').all(req.params.userId);
     res.json({ ...user, skills });
   } catch (err) {
+    console.error('Error GET /api/users/:userId:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -619,14 +660,16 @@ app.delete('/api/skills/:skillId', (req, res) => {
     - ทักษะที่ต้องการ: ${Array.isArray(job.skillsRequired) ? job.skillsRequired.join(', ') : job.skillsRequired || ''}
     - หน้าที่รับผิดชอบ: ${job.description || ''}
 
-    โปรดวิเคราะห์ความเข้ากันได้ และตอบกลับเป็น JSON รูปแบบนี้เท่านั้น (ห้ามใส่ Markdown code block หรือตัวอักษรอื่นนอกเหนือจาก JSON):
+    โปรดวิเคราะห์ความเข้ากันได้ รวมถึงวิเคราะห์สายงานที่เหมาะสมที่สุดสำหรับผู้สมัครรายนี้ และตอบกลับเป็น JSON รูปแบบนี้เท่านั้น (ห้ามใส่ Markdown code block หรือตัวอักษรอื่นนอกเหนือจาก JSON):
     {
       "matchRate": 88,
       "isMajorMatched": true,
       "majorMatchReason": "ตรงกับสาขาของคุณ ✨",
-      "aiAnalysis": "เขียนบทวิเคราะห์ภาษาไทยเชิงลึก 2-3 ประโยค สรุปจุดแข็งและทักษะที่ควรพัฒนาต่อ"
+      "suggestedCareerPath": "ระบุสายงานที่เหมาะกับผู้สมัครมากที่สุด (เช่น Web Development, Data Science, UX/UI Design ฯลฯ)",
+      "aiAnalysis": "เขียนบทวิเคราะห์ภาษาไทยเชิงลึก 2-3 ประโยค สรุปจุดแข็ง สายนงานที่เหมาะ และทักษะที่ควรพัฒนาต่อ"
     }
     `;
+
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();

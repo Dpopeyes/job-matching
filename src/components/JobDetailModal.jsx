@@ -41,6 +41,11 @@ export default function JobDetailModal({ job, currentUser, onClose, onApplySucce
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="badge badge-primary">{job.type}</span>
+                {(job.approvalStatus === 'approved' || !job.approvalStatus) && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-sky-100 text-sky-800 border border-sky-300 px-2.5 py-0.5 rounded-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Verified
+                  </span>
+                )}
                 <span className="badge badge-success flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> AI Match {job.matchRate}%
                 </span>

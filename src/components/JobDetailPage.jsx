@@ -114,6 +114,27 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
                 <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                   {job.title}
                 </h1>
+                {(job.approvalStatus === 'approved' || !job.approvalStatus) && (
+                  <span 
+                    title="ผ่านการตรวจสอบและอนุมัติโดยผู้ดูแลระบบเรียบร้อย (Verified Job Post)"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: '800',
+                      background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                      color: '#0369a1',
+                      border: '1px solid #7dd3fc',
+                      padding: '3px 10px',
+                      borderRadius: '999px',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 1px 3px rgba(3, 105, 161, 0.12)'
+                    }}
+                  >
+                    <CheckCircle2 style={{ width: '14px', height: '14px', color: '#0284c7' }} /> Verified
+                  </span>
+                )}
                 {currentUser?.role === 'applicant' && (
                   <>
                     <span 

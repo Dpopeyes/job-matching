@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, X, ChevronLeft, User, Clock, Building } from 'lucide-react';
-import { fetchMessages, sendMessage } from '../data/api';
+import { fetchMessages, sendMessage, fetchAdminApplications } from '../data/api';
 
 export default function HotChat({ 
   currentUser, 
@@ -14,9 +14,27 @@ export default function HotChat({
   const [newMessageText, setNewMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [adminApps, setAdminApps] = useState([]);
   const messagesEndRef = useRef(null);
   
-  const isEmployer = currentUser?.role === 'employer';
+  const effectiveUser = currentUser || { id: 'user-001', name: 'สมาชิกทั่วไป', role: 'applicant' };
+  const isEmployer = effectiveUser?.role === 'employer';
+  const isAdmin = effectiveUser?.role === 'admin';
+
+  // Load all applications if admin
+  useEffect(() => {
+    if (isAdmin) {
+      const loadAdminApps = async () => {
+        const apps = await fetchAdminApplications();
+        if (apps) setAdminApps(apps);
+      };
+      loadAdminApps();
+      const interval = setInterval(loadAdminApps, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin]);
+
+  const displayApps = isAdmin ? (adminApps.length > 0 ? adminApps : applications) : applications;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,16 +68,17 @@ export default function HotChat({
 
   // Poll for unread/new messages on all applications (for notification count)
   useEffect(() => {
-    if (!currentUser || isOpen) return;
+    if (!effectiveUser || isOpen) return;
 
     const checkAllMessages = async () => {
+      const targetApps = isAdmin ? (adminApps.length > 0 ? adminApps : applications) : applications;
       const counts = {};
-      for (const app of applications) {
+      for (const app of targetApps) {
         const msgs = await fetchMessages(app.id);
         if (msgs && msgs.length > 0) {
           // Count messages that are not sent by me as unread if they are recent
           const lastMsg = msgs[msgs.length - 1];
-          if (lastMsg.senderId !== currentUser.id) {
+          if (lastMsg.senderId !== effectiveUser.id) {
             counts[app.id] = true; // Mark that this application has active unread messages
           }
         }
@@ -71,11 +90,11 @@ export default function HotChat({
     const interval = setInterval(checkAllMessages, 5000); // Check notifications every 5s
 
     return () => clearInterval(interval);
-  }, [applications, currentUser, isOpen]);
+  }, [applications, adminApps, isAdmin, effectiveUser, isOpen]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessageText.trim() || !activeChatApp || !currentUser) return;
+    if (!newMessageText.trim() || !activeChatApp || !effectiveUser) return;
 
     setIsSending(true);
     const content = newMessageText.trim();
@@ -83,8 +102,8 @@ export default function HotChat({
 
     const msg = await sendMessage(
       activeChatApp.id,
-      currentUser.id,
-      currentUser.name,
+      effectiveUser.id,
+      effectiveUser.name,
       content
     );
 
@@ -94,10 +113,8 @@ export default function HotChat({
     setIsSending(false);
   };
 
-  // If user is not logged in, don't show the chat widget at all
-  if (!currentUser) return null;
-
   const totalUnread = Object.keys(unreadCounts).length;
+
 
   return (
     <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, fontFamily: 'system-ui, sans-serif' }}>
@@ -290,16 +307,16 @@ export default function HotChat({
               /* ================== VIEW 2: CONVERSATIONS LIST ================== */
               <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
                 <h5 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#64748b', margin: '0 0 10px 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  บทสนทนาที่กำลังใช้งาน ({applications.length})
+                  บทสนทนาที่กำลังใช้งาน ({displayApps.length})
                 </h5>
-                {applications.length === 0 ? (
+                {displayApps.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 10px', color: '#64748b' }}>
                     <MessageSquare style={{ width: '32px', height: '32px', color: '#cbd5e1', margin: '0 auto 10px' }} />
-                    <p style={{ fontSize: '0.8rem', margin: 0 }}>ไม่มีประวัติการสมัครงานเพื่อเริ่มพูดคุยในขณะนี้</p>
+                    <p style={{ fontSize: '0.8rem', margin: 0 }}>ไม่มีประวัติการสมัครงานหรือติดต่อแอดมินในขณะนี้</p>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {applications.map((app) => {
+                    {displayApps.map((app) => {
                       const hasUnread = unreadCounts[app.id];
                       return (
                         <div
@@ -322,7 +339,7 @@ export default function HotChat({
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {isEmployer ? app.applicantName : app.company}
+                                {isAdmin ? `ผู้ติดต่อ: ${app.applicantName || 'สมาชิก'}` : (isEmployer ? app.applicantName : app.company)}
                               </span>
                               {hasUnread && (
                                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6' }}></span>
@@ -332,6 +349,7 @@ export default function HotChat({
                               งาน: {app.jobTitle}
                             </div>
                           </div>
+
                           
                           <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                             <span style={{ 

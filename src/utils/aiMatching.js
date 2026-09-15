@@ -216,7 +216,7 @@ export function calculateAIMatchRate(job, applicant) {
   }
   const skillScore = Math.round(skillRatio * 100);
 
-  // 3. Major Taxonomy & Field Matching Analysis (0% to 100%)
+  // 3. Major Taxonomy & High-Precision Field Matching Analysis (0% to 100%)
   const applicantMajor = normalizeText(applicant.major);
   const jobTitle = normalizeText(job.title);
   const jobCategory = normalizeText(job.category);
@@ -225,23 +225,23 @@ export function calculateAIMatchRate(job, applicant) {
   const applicantCluster = getClusterKey(applicantMajor);
   const jobTitleCluster = getClusterKey(jobTitle) || getClusterKey(jobCategory) || getClusterKey(jobDescription);
 
-  let majorScore = 0;
+  let majorScore = 15;
   let isMajorMatched = false;
   let majorMatchReason = '⚠️ ต่างสายงาน';
 
   if (applicantCluster === 'tech') {
     if (jobTitle.includes('เครื่องจักร') || jobTitle.includes('ช่างเครื่อง') || jobTitle.includes('บัญชี') || jobTitle.includes('การเงิน') || jobTitle.includes('ขาย')) {
-      majorScore = 0;
+      majorScore = 10;
       isMajorMatched = false;
       majorMatchReason = '⚠️ ต่างสายงาน';
     } else if (jobTitleCluster === 'tech') {
       majorScore = 100;
       isMajorMatched = true;
-      majorMatchReason = `ตรงกับสาขา ${applicant.major || 'ของคุณ'} ✨`;
+      majorMatchReason = `ตรงกับสาขา ${applicant.major || 'เทคโนโลยี'} 💻✨`;
     } else if (jobTitleCluster === 'design') {
-      majorScore = 50;
-      isMajorMatched = false;
-      majorMatchReason = 'สายงานใกล้เคียง (UI/UX Design)';
+      majorScore = 75;
+      isMajorMatched = true;
+      majorMatchReason = 'สายงานใกล้เคียง (UI/UX & Digital Design) 🎨';
     }
   } else if (applicantCluster && jobTitleCluster && applicantCluster === jobTitleCluster) {
     majorScore = 100;
@@ -251,13 +251,41 @@ export function calculateAIMatchRate(job, applicant) {
     majorScore = 100;
     isMajorMatched = true;
     majorMatchReason = `ตรงกับสาขา ${applicant.major} ✨`;
+  } else if (applicantMajor.includes('มัลติมีเดีย') && (jobTitle.includes('ux') || jobTitle.includes('ui') || jobTitle.includes('design'))) {
+    majorScore = 90;
+    isMajorMatched = true;
+    majorMatchReason = 'สาขามัลติมีเดียสอดคล้องกับงานออกแบบดิจิทัล 🎨';
+  } else if (applicantMajor.includes('สถิติ') && (jobTitle.includes('data') || jobTitle.includes('วิเคราะห์'))) {
+    majorScore = 90;
+    isMajorMatched = true;
+    majorMatchReason = 'สาขาสถิติสอดคล้องกับงานวิเคราะห์ข้อมูล 📊';
   }
 
-  // 4. Combined Weighted Match Rate: (Skill Score * 70%) + (Major Score * 30%)
-  let finalMatchRate = Math.round((skillScore * 0.7) + (majorScore * 0.3));
+  // 4. Portfolio & Project Verification Bonus (0% to 100%)
+  let portfolioBonus = 0;
+  if (Array.isArray(applicant.projects) && applicant.projects.length > 0) {
+    const hasMatchingProject = applicant.projects.some(p => {
+      const pTitle = normalizeText(p.title);
+      const pDesc = normalizeText(p.description);
+      const pTags = Array.isArray(p.tags) ? p.tags.map(t => normalizeText(t)).join(' ') : normalizeText(p.tags);
+      return matchedSkills.some(ms => {
+        const msNorm = normalizeSkill(ms);
+        return pTitle.includes(msNorm) || pDesc.includes(msNorm) || pTags.includes(msNorm);
+      });
+    });
+    portfolioBonus = hasMatchingProject ? 100 : 50;
+  }
+
+  // 5. Combined High-Precision Weighted Match Rate:
+  // (Skill Score * 65%) + (Major Score * 25%) + (Portfolio Bonus * 10%)
+  let finalMatchRate = Math.round((skillScore * 0.65) + (majorScore * 0.25) + (portfolioBonus * 0.10));
 
   // Minimum floor 15%
   finalMatchRate = Math.max(15, Math.min(100, finalMatchRate));
+
+
+  // Predict suggested career paths for applicant
+  const careerPathAnalysis = predictCareerPaths(applicant);
 
   return {
     matchRate: finalMatchRate,
@@ -266,6 +294,80 @@ export function calculateAIMatchRate(job, applicant) {
     matchedSkills,
     missingSkills,
     skillScore,
-    majorScore
+    majorScore,
+    recommendedCareerPaths: careerPathAnalysis.recommendedCareerPaths,
+    careerCompatibilityReason: careerPathAnalysis.compatibilityReason
   };
 }
+
+/**
+ * Predict and match suitable career paths based on applicant skills, major, projects & bio
+ * @param {Object} applicant - Applicant profile
+ * @returns {Object} Career path recommendations
+ */
+export function predictCareerPaths(applicant) {
+  if (!applicant) {
+    return {
+      recommendedCareerPaths: ['Software Development'],
+      compatibilityReason: 'มีทักษะพื้นฐานด้านเทคโนโลยีสารสนเทศ'
+    };
+  }
+
+  const skillTokens = extractAllApplicantSkillTokens(applicant).map(s => normalizeSkill(s));
+  const majorNorm = normalizeText(applicant.major);
+  const bioNorm = normalizeText(applicant.bio);
+
+  const careerTracks = [
+    {
+      name: 'Web & Software Development (สายงานพัฒนาเว็บและซอฟต์แวร์)',
+      keywords: ['react', 'javascript', 'node.js', 'html', 'css', 'git', 'frontend', 'backend', 'fullstack', 'python', 'vue.js', 'tailwind css'],
+      majors: ['คอมพิวเตอร์', 'ซอฟต์แวร์', 'ไอที', 'เทคโนโลยี']
+    },
+    {
+      name: 'Data & Analytics (สายงานวิเคราะห์ข้อมูลและสารสนเทศ)',
+      keywords: ['python', 'sql', 'power bi', 'excel', 'data', 'tableau', 'analytics'],
+      majors: ['สถิติ', 'วิทยาการข้อมูล', 'เศรษฐศาสตร์', 'คอมพิวเตอร์']
+    },
+    {
+      name: 'UI/UX & Graphic Design (สายงานออกแบบประสบการณ์และอินเทอร์เฟซ)',
+      keywords: ['figma', 'ui/ux', 'photoshop', 'illustrator', 'wireframing', 'design'],
+      majors: ['นิเทศศิลป์', 'ออกแบบ', 'มัลติมีเดีย', 'ศิลปกรรม']
+    },
+    {
+      name: 'Digital Marketing & Business (สายงานการตลาดดิจิทัลและบริหารธุรกิจ)',
+      keywords: ['marketing', 'sales', 'content', 'seo', 'facebook ads', 'accounting', 'finance'],
+      majors: ['การตลาด', 'บริหารธุรกิจ', 'การเงิน', 'บัญชี']
+    }
+  ];
+
+  const scores = careerTracks.map(track => {
+    let score = 0;
+
+    // Check skills
+    track.keywords.forEach(kw => {
+      if (skillTokens.some(st => st.includes(kw) || kw.includes(st))) score += 25;
+    });
+
+    // Check major
+    if (track.majors.some(m => majorNorm.includes(m))) score += 30;
+
+    // Check bio
+    if (track.keywords.some(kw => bioNorm.includes(kw))) score += 15;
+
+    return { name: track.name, score };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+
+  const topTrack = scores[0] && scores[0].score > 0 ? scores[0].name : 'Software Development & IT Support';
+  const secondTrack = scores[1] && scores[1].score > 0 ? scores[1].name : null;
+
+  const recommendedCareerPaths = [topTrack];
+  if (secondTrack) recommendedCareerPaths.push(secondTrack);
+
+  return {
+    recommendedCareerPaths,
+    compatibilityReason: `วิเคราะห์จากทักษะหลักและสาขาวิชา ${applicant.major || ''} ของคุณ เหมาะสมกับ ${topTrack} เป็นพิเศษ ✨`
+  };
+}
+

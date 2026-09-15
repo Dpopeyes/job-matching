@@ -387,9 +387,50 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
                   <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                     {profileData.name}
                   </h1>
-                  <span className={`badge ${isEmployer ? 'badge-accent' : 'badge-success'}`}>
-                    {isEmployer ? '✓ Verified Employer' : 'Open to Work'}
-                  </span>
+                  {isEmployer ? (
+                    (profileData.employerType === 'individual' || (profileData.email && (profileData.email.toLowerCase().endsWith('@gmail.com') || profileData.email.toLowerCase().endsWith('@hotmail.com') || profileData.email.toLowerCase().endsWith('@yahoo.com')))) ? (
+                      <span 
+                        title="นายจ้างบุคคลธรรมดา / ฟรีแลนซ์ (General / Individual Employer)"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: '800',
+                          padding: '4px 12px',
+                          borderRadius: '999px',
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          border: '1px solid #cbd5e1',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <User style={{ width: '13px', height: '13px', color: '#64748b' }} /> นายจ้างทั่วไป (Individual)
+                      </span>
+                    ) : (
+                      <span 
+                        title="ได้รับการรับรององค์กรนิติบุคคลผ่านโดเมนธุรกิจเรียบร้อย (Verified Corporate Employer)"
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: '800',
+                          padding: '4px 12px',
+                          borderRadius: '999px',
+                          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                          color: '#047857',
+                          border: '1px solid #6ee7b7',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 6px rgba(4, 120, 87, 0.12)'
+                        }}
+                      >
+                        <CheckCircle2 style={{ width: '14px', height: '14px', color: '#059669' }} /> ✓ Verified Employer
+                      </span>
+                    )
+                  ) : (
+                    <span className="badge badge-success">
+                      Open to Work
+                    </span>
+                  )}
                 </div>
 
                 <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -490,17 +531,31 @@ export default function ProfilePage({ user, onUpdateUser, readOnly = false }) {
               </div>
             </div>
 
-            <div className="glass-card" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 style={{ width: '20px', height: '20px', color: '#059669' }} /> Status การตรวจสอบองค์กร
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>
-                องค์กรของคุณได้รับการยืนยันตัวตน (Verified Employer) เรียบร้อยแล้ว สามารถลงประกาศรับสมัครงานและคัดเลือกผู้สมัครได้ทันที
-              </p>
-              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px 16px', borderRadius: '12px', color: '#065f46', fontSize: '0.8rem', fontWeight: '700' }}>
-                ✓ ยืนยันสิทธิ์นายจ้างเรียบร้อย
+            {(profileData.employerType === 'individual' || (profileData.email && (profileData.email.toLowerCase().endsWith('@gmail.com') || profileData.email.toLowerCase().endsWith('@hotmail.com') || profileData.email.toLowerCase().endsWith('@yahoo.com')))) ? (
+              <div className="glass-card" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <User style={{ width: '20px', height: '20px', color: '#475569' }} /> Status บัญชีนายจ้างทั่วไป
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>
+                  บัญชีของคุณเป็น <strong>นายจ้างบุคคลธรรมดา / ฟรีแลนซ์ (General Employer)</strong> สามารถประกาศรับสมัครงานและเลือกผู้สมัครได้ตามปกติ หากต้องการป้ายรับรององค์กร (Verified Corporate) สามารถใช้อีเมลโดเมนบริษัทลงทะเบียน
+                </p>
+                <div style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '12px 16px', borderRadius: '12px', color: '#334155', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <User style={{ width: '16px', height: '16px', color: '#64748b' }} /> 👤 บัญชีนายจ้างบุคคลธรรมดา (General Employer)
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="glass-card" style={{ padding: '24px' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle2 style={{ width: '20px', height: '20px', color: '#059669' }} /> Status การตรวจสอบองค์กร
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.6, marginBottom: '16px' }}>
+                  องค์กรของคุณได้รับการยืนยันตัวตน (Verified Corporate Employer) เรียบร้อยแล้ว สามารถลงประกาศรับสมัครงานและคัดเลือกผู้สมัครได้ทันที
+                </p>
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px 16px', borderRadius: '12px', color: '#065f46', fontSize: '0.8rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 style={{ width: '16px', height: '16px', color: '#059669' }} /> ✓ ยืนยันสิทธิ์นายจ้างได้รับการรับรองจากบริษัทเรียบร้อย
+                </div>
+              </div>
+            )}
 
           </div>
         ) : (
