@@ -57,17 +57,28 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
     }
   };
 
-  // Multi-category filtering logic (Visible to EVERYONE)
+  // Multi-category & Location filtering logic (Visible to EVERYONE)
   const filteredJobs = (jobs || []).filter((job) => {
     if (!job || !job.title) return false;
 
+    // Filter out internal system/support ticket job
+    if (job.id === 'job-admin-support' || job.category === 'support') return false;
+
     // 1. Search filter
+    const searchLower = (searchTerm || '').trim().toLowerCase();
+    const titleLower = (job.title || '').toLowerCase();
+    const companyLower = (job.company || '').toLowerCase();
+    const descLower = (job.description || '').toLowerCase();
+    const skillsLower = Array.isArray(job.skillsRequired)
+      ? job.skillsRequired.join(' ').toLowerCase()
+      : (typeof job.skillsRequired === 'string' ? job.skillsRequired.toLowerCase() : '');
+
     const matchesSearch =
-      !searchTerm ||
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (job.skillsRequired && job.skillsRequired.some(s => typeof s === 'string' && s.toLowerCase().includes(searchTerm.toLowerCase())));
+      !searchLower ||
+      titleLower.includes(searchLower) ||
+      companyLower.includes(searchLower) ||
+      descLower.includes(searchLower) ||
+      skillsLower.includes(searchLower);
 
     // 2. Category filter
     let matchesCategory = true;
@@ -75,28 +86,47 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
       if (job.category) {
         matchesCategory = job.category === selectedCategory;
       } else {
-        if (selectedCategory === 'dev' && !job.title.toLowerCase().includes('developer')) matchesCategory = false;
-        if (selectedCategory === 'marketing' && !job.title.toLowerCase().includes('การตลาด')) matchesCategory = false;
-        if (selectedCategory === 'finance' && !job.title.toLowerCase().includes('บัญชี')) matchesCategory = false;
-        if (selectedCategory === 'engineering' && !job.title.toLowerCase().includes('วิศวกร')) matchesCategory = false;
-        if (selectedCategory === 'hr' && !job.title.toLowerCase().includes('hr') && !job.title.toLowerCase().includes('ธุรการ')) matchesCategory = false;
-        if (selectedCategory === 'design' && !job.title.toLowerCase().includes('ux/ui') && !job.title.toLowerCase().includes('graphic')) matchesCategory = false;
-        if (selectedCategory === 'intern' && !job.type.includes('ฝึกงาน')) matchesCategory = false;
+        if (selectedCategory === 'dev' && !titleLower.includes('developer') && !titleLower.includes('software') && !titleLower.includes('coding')) matchesCategory = false;
+        if (selectedCategory === 'marketing' && !titleLower.includes('การตลาด') && !titleLower.includes('marketing')) matchesCategory = false;
+        if (selectedCategory === 'finance' && !titleLower.includes('บัญชี') && !titleLower.includes('การเงิน') && !titleLower.includes('finance')) matchesCategory = false;
+        if (selectedCategory === 'engineering' && !titleLower.includes('วิศวกร') && !titleLower.includes('ช่าง')) matchesCategory = false;
+        if (selectedCategory === 'hr' && !titleLower.includes('hr') && !titleLower.includes('ธุรการ')) matchesCategory = false;
+        if (selectedCategory === 'design' && !titleLower.includes('ux/ui') && !titleLower.includes('graphic') && !titleLower.includes('ออกแบบ')) matchesCategory = false;
+        if (selectedCategory === 'intern' && !(job.type || '').includes('ฝึกงาน')) matchesCategory = false;
       }
     }
 
     // 3. Province filter
     let matchesProvince = true;
-    if (selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)') {
-      if (selectedProvince.includes('Remote')) {
-        matchesProvince = job.location.toLowerCase().includes('remote') || job.location.toLowerCase().includes('home');
+    if (selectedProvince && selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)') {
+      const jobLoc = (job.location || '').toLowerCase();
+
+      if (selectedProvince.includes('Remote') || selectedProvince.includes('Work From Home')) {
+        matchesProvince = jobLoc.includes('remote') || 
+                          jobLoc.includes('home') || 
+                          jobLoc.includes('ทำงานจากบ้าน') || 
+                          jobLoc.includes('wfh') ||
+                          jobLoc.includes('hybrid');
       } else {
-        const provClean = selectedProvince.replace('จังหวัด', '').trim();
-        matchesProvince = job.location.includes(provClean);
+        const provClean = selectedProvince.replace('จังหวัด', '').trim().toLowerCase();
+
+        // Comprehensive Bangkok handling (กรุงเทพมหานคร, กรุงเทพฯ, กรุงเทพ, กทม, Bangkok)
+        if (provClean === 'กรุงเทพมหานคร' || provClean.startsWith('กรุงเทพ') || provClean === 'กทม') {
+          matchesProvince = jobLoc.includes('กรุงเทพ') || 
+                            jobLoc.includes('กทม') || 
+                            jobLoc.includes('bangkok') ||
+                            jobLoc.includes('อโศก') ||
+                            jobLoc.includes('พระราม') ||
+                            jobLoc.includes('สาทร') ||
+                            jobLoc.includes('สุขุมวิท') ||
+                            jobLoc.includes('สีลม');
+        } else {
+          matchesProvince = jobLoc.includes(provClean);
+        }
       }
     }
 
-    return matchesSearch && matchesCategory && (matchesProvince || selectedProvince === 'ทุกสถานที่ (ทั่วประเทศไทย)');
+    return matchesSearch && matchesCategory && matchesProvince;
   });
 
   // Calculate dynamic Match Rate % for all jobs & sort
@@ -143,6 +173,11 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    document.getElementById('jobs-grid')?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
                 placeholder={t.searchPlaceholder}
               />
             </div>
@@ -152,6 +187,7 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
               <select
                 value={selectedProvince}
                 onChange={(e) => setSelectedProvince(e.target.value)}
+                style={{ cursor: 'pointer', fontWeight: selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)' ? '700' : 'normal' }}
               >
                 {THAI_PROVINCES.map((prov, idx) => (
                   <option key={idx} value={prov}>
@@ -161,7 +197,14 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
               </select>
             </div>
 
-            <button className="btn btn-primary" style={{ padding: '12px 24px' }}>
+            <button 
+              type="button"
+              onClick={() => {
+                document.getElementById('jobs-grid')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="btn btn-primary" 
+              style={{ padding: '12px 24px' }}
+            >
               <Search style={{ width: '16px', height: '16px' }} /> {t.searchButton}
             </button>
 
@@ -261,15 +304,50 @@ export default function HomePage({ jobs = [], onSelectJob, currentUser, userSkil
 
       {/* Clean Job Cards Grid or Empty State */}
       {processedJobs.length === 0 ? (
-        <div className="clean-card" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-          <Briefcase style={{ width: '48px', height: '48px', color: '#cbd5e1', margin: '0 auto 12px' }} />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', margin: '0 0 6px' }}>ยังไม่มีประกาศตำแหน่งงานในขณะนี้</h3>
-          <p style={{ fontSize: '0.85rem', margin: 0 }}>
-            {currentUser?.role === 'employer' ? 'คุณสามารถกดปุ่ม "➕ โพสต์ประกาศรับสมัครงาน" เพื่อเริ่มลงประกาศงานใหม่ได้ทันที' : 'เมื่อองค์กรนายจ้างลงประกาศรับสมัครงานใหม่ ตำแหน่งงานจะแสดงที่นี่ทันที'}
+        <div id="jobs-grid" className="clean-card" style={{ textAlign: 'center', padding: '50px 20px', color: '#64748b' }}>
+          <Briefcase style={{ width: '48px', height: '48px', color: '#94a3b8', margin: '0 auto 12px' }} />
+          <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', margin: '0 0 8px' }}>
+            {selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)' || searchTerm || selectedCategory !== 'all'
+              ? 'ไม่พบตำแหน่งงานที่ตรงกับเงื่อนไขการค้นหา'
+              : 'ยังไม่มีประกาศตำแหน่งงานในขณะนี้'}
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 18px', maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto' }}>
+            {selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)' && (
+              <span style={{ display: 'inline-block', margin: '2px 4px', background: '#eff6ff', color: '#1e40af', padding: '3px 10px', borderRadius: '8px', fontWeight: '700' }}>
+                📍 {selectedProvince}
+              </span>
+            )}
+            {searchTerm && (
+              <span style={{ display: 'inline-block', margin: '2px 4px', background: '#f1f5f9', color: '#334155', padding: '3px 10px', borderRadius: '8px', fontWeight: '700' }}>
+                🔍 "{searchTerm}"
+              </span>
+            )}
+            {selectedCategory !== 'all' && (
+              <span style={{ display: 'inline-block', margin: '2px 4px', background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: '8px', fontWeight: '700' }}>
+                📁 {categories.find(c => c.id === selectedCategory)?.label || selectedCategory}
+              </span>
+            )}
+            {selectedProvince === 'ทุกสถานที่ (ทั่วประเทศไทย)' && !searchTerm && selectedCategory === 'all' && (
+              <span>เมื่อมีองค์กรหรือนายจ้างลงประกาศรับสมัครงานใหม่ ตำแหน่งงานจะแสดงที่นี่ทันที</span>
+            )}
           </p>
+          {(selectedProvince !== 'ทุกสถานที่ (ทั่วประเทศไทย)' || searchTerm || selectedCategory !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedProvince('ทุกสถานที่ (ทั่วประเทศไทย)');
+                setSearchTerm('');
+                setSelectedCategory('all');
+              }}
+              className="btn btn-primary"
+              style={{ padding: '10px 22px', borderRadius: '12px', fontSize: '0.875rem' }}
+            >
+              🔄 แสดงตำแหน่งงานทั้งหมด (ล้างตัวกรอง)
+            </button>
+          )}
         </div>
       ) : (
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
+        <section id="jobs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '20px' }}>
           {processedJobs.map((job) => {
             const matchInfo = job._matchInfo || calculateJobMatch(job, currentUser, userSkills);
             const matchRate = matchInfo.matchRate;

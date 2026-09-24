@@ -75,7 +75,7 @@ app.get('/api/jobs', (req, res) => {
       query += ` WHERE employerId = ? ORDER BY jobs.rowid DESC`;
       params.push(employerId);
     } else {
-      query += ` WHERE (approvalStatus = 'approved' OR approvalStatus IS NULL) ORDER BY jobs.rowid DESC`;
+      query += ` WHERE (approvalStatus = 'approved' OR approvalStatus IS NULL) AND (category != 'support' OR category IS NULL) AND id != 'job-admin-support' ORDER BY jobs.rowid DESC`;
     }
 
     const jobs = db.prepare(query).all(...params);
@@ -163,15 +163,44 @@ app.post('/api/jobs', (req, res) => {
 // PUT Edit Existing Job
 app.put('/api/jobs/:id', (req, res) => {
   try {
-    const { title, company, location, category, type, salary, description, skillsRequired, qualifications, vacancies } = req.body;
-    const skillsJson = JSON.stringify(Array.isArray(skillsRequired) ? skillsRequired : ['การสื่อสาร']);
-    const qualJson = JSON.stringify(Array.isArray(qualifications) ? qualifications : ['ปริญญาตรีทุกสาขา']);
+    const existingJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
+    if (!existingJob) {
+      return res.status(404).json({ error: 'ไม่พบประกาศตำแหน่งงาน' });
+    }
+
+    const {
+      title = existingJob.title,
+      company = existingJob.company,
+      location = existingJob.location,
+      category = existingJob.category,
+      type = existingJob.type,
+      salary = existingJob.salary,
+      description = existingJob.description,
+      skillsRequired,
+      qualifications,
+      vacancies = existingJob.vacancies
+    } = req.body;
+
+    const skillsJson = skillsRequired !== undefined ? JSON.stringify(Array.isArray(skillsRequired) ? skillsRequired : ['การสื่อสาร']) : existingJob.skillsRequired;
+    const qualJson = qualifications !== undefined ? JSON.stringify(Array.isArray(qualifications) ? qualifications : ['ปริญญาตรีทุกสาขา']) : existingJob.qualifications;
 
     db.prepare(`
       UPDATE jobs 
       SET title = ?, company = ?, location = ?, category = ?, type = ?, salary = ?, description = ?, skillsRequired = ?, qualifications = ?, vacancies = ?
       WHERE id = ?
-    `).run(title, company, location, category, type, salary, description, skillsJson, qualJson, parseInt(vacancies, 10) || 1, req.params.id);
+    `).run(
+      title ?? '',
+      company ?? '',
+      location ?? '',
+      category ?? 'all',
+      type ?? '',
+      salary ?? '',
+      description ?? '',
+      skillsJson,
+      qualJson,
+      parseInt(vacancies, 10) || 1,
+      req.params.id
+    );
 
     console.log(`✏️ Updated job in SQLite DB: ${req.params.id}`);
     res.json({ success: true, message: 'แก้ไขประกาศตำแหน่งงานสำเร็จ' });

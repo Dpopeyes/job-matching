@@ -2,9 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { HelpCircle, Bot, X, Send, ShieldCheck, Sparkles, MessageSquare, CheckCircle2, Headphones, AlertCircle, ExternalLink, ChevronRight } from 'lucide-react';
 
 export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNavigateProfile, onOpenLiveAdminChat }) {
-  // Hide HelpBot completely for Admin role (Admin manages chats via Admin Dashboard / HotChat)
-  if (currentUser?.role === 'admin') return null;
-
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -174,6 +171,9 @@ export default function HelpCenterModal({ currentUser, onNavigateAdmin, onNaviga
       }, 900);
     }
   };
+
+  // Hide HelpBot completely for Admin role (Admin manages chats via Admin Dashboard / HotChat)
+  if (currentUser?.role === 'admin') return null;
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { calculateAIMatchRate } from './aiMatching';
+import { calculateAIMatchRate } from './aiMatching.js';
 
 /**
  * Dynamic Job & Skill Match Rate (%) Calculator powered by AI Semantic Engine
