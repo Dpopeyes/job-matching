@@ -378,15 +378,29 @@ export default function JobDetailPage({ job, currentUser, userSkills = [], onBac
 
               {/* Real-time Google Gemini AI Analysis Box */}
               <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#3b0764' }}>
-                <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', color: '#7e22ce', marginBottom: '4px' }}>
-                  <Cpu style={{ width: '15px', height: '15px', color: '#7c3aed' }} /> บทวิเคราะห์ประเมินสดจาก Google Gemini AI 🤖
+                <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#7e22ce', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Cpu style={{ width: '15px', height: '15px', color: '#7c3aed' }} /> บทวิเคราะห์ประเมินสดจาก Google Gemini AI 🤖
+                  </div>
+                  {geminiAnalysis?.matchRate && (
+                    <span style={{ fontSize: '0.72rem', background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: '999px', fontWeight: '800' }}>
+                      AI Score: {geminiAnalysis.matchRate}%
+                    </span>
+                  )}
                 </div>
                 {isLoadingGemini ? (
-                  <div style={{ color: '#64748b', fontStyle: 'italic' }}>กำลังประมวลผลวิเคราะห์เรียลไทม์กับ Google Gemini AI...</div>
+                  <div style={{ color: '#64748b', fontStyle: 'italic', padding: '8px 0' }}>กำลังประมวลผลวิเคราะห์เรียลไทม์กับ Google Gemini AI...</div>
                 ) : (
-                  <p style={{ margin: 0, lineHeight: 1.5, background: '#ffffff', padding: '10px', borderRadius: '10px', border: '1px solid #e9d5ff', color: '#4c1d95', fontStyle: 'italic' }}>
-                    "{geminiAnalysis?.aiAnalysis || 'ผู้สมัครมีพื้นฐานการศึกษาและทักษะสอดคล้องกับตำแหน่งงาน เหมาะสำหรับการพิจารณาคัดเลือกเข้าสู่รอบสัมภาษณ์'}"
-                  </p>
+                  <div>
+                    <p style={{ margin: '0 0 6px 0', lineHeight: 1.5, background: '#ffffff', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e9d5ff', color: '#4c1d95', fontStyle: 'italic' }}>
+                      "{geminiAnalysis?.aiAnalysis || 'ผู้สมัครมีพื้นฐานการศึกษาและทักษะสอดคล้องกับตำแหน่งงาน เหมาะสำหรับการพิจารณาคัดเลือกเข้าสู่รอบสัมภาษณ์'}"
+                    </p>
+                    {geminiAnalysis?.suggestedCareerPath && (
+                      <div style={{ fontSize: '0.75rem', color: '#6d28d9', fontWeight: '600', marginTop: '4px' }}>
+                        🎯 สายงานแนะนำ: <span style={{ color: '#4338ca', fontWeight: '700' }}>{geminiAnalysis.suggestedCareerPath}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

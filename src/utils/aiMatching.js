@@ -10,6 +10,13 @@ const TAXONOMY_CLUSTERS = {
     ],
     antiKeywords: ['เครื่องจักร', 'บัญชี', 'ช่าง', 'การเงิน', 'การตลาด', 'เซลล์', 'แม่บ้าน', 'ขับรถ']
   },
+  data_science: {
+    keywords: [
+      'วิทยาการข้อมูล', 'ดาต้า', 'สถิติ', 'data science', 'data analyst', 'business intelligence',
+      'bi', 'analytics', 'machine learning', 'ai', 'sql', 'python', 'power bi', 'tableau', 'big data'
+    ],
+    antiKeywords: ['เครื่องจักร', 'ช่างเครื่อง', 'แม่บ้าน', 'ขับรถ']
+  },
   design: {
     keywords: [
       'ออกแบบ', 'กราฟิก', 'นิเทศศิลป์', 'มัลติมีเดีย', 'ui/ux', 'digital art',
@@ -40,8 +47,12 @@ const SKILL_ALIASES = {
   'react': 'react',
   'react.js': 'react',
   'reactjs': 'react',
+  'next': 'next.js',
+  'nextjs': 'next.js',
   'node': 'node.js',
   'nodejs': 'node.js',
+  'express': 'express.js',
+  'expressjs': 'express.js',
   'vue': 'vue.js',
   'vuejs': 'vue.js',
   'py': 'python',
@@ -53,7 +64,12 @@ const SKILL_ALIASES = {
   'tailwind': 'tailwind css',
   'tailwindcss': 'tailwind css',
   'ui/ux': 'ui/ux',
-  'figma design': 'figma'
+  'figma design': 'figma',
+  'mongo': 'mongodb',
+  'postgres': 'postgresql',
+  'github': 'git',
+  'ml': 'machine learning',
+  'ai': 'artificial intelligence'
 };
 
 // Default Tech Skills for Tech/CS applicants if profile is completely empty

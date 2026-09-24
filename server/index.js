@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import db, { initDatabase } from './database.js';
-
+import { calculateAIMatchRate } from '../src/utils/aiMatching.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -642,92 +642,147 @@ app.delete('/api/skills/:skillId', (req, res) => {
 });
 
 // ----------------------------------------------------
-// GOOGLE GEMINI REAL-TIME AI MATCHING API
-
-  // ----------------------------------------------------
-  app.post('/api/ai/match', async (req, res) => {
-    try {
-      const { job, applicant } = req.body;
-      if (!job || !applicant) {
-        return res.status(400).json({ success: false, error: 'Missing job or applicant payload' });
-      }
-
-      const apiKey = process.env.GEMINI_API_KEY || GEMINI_API_KEY || req.headers['x-gemini-key'];
-
-      if (!apiKey) {
-        // Smart Fallback when no API Key is set
-        return res.json({
-          success: true,
-          source: 'embedded_ai',
-          analysis: {
-            matchRate: 88,
-            isMajorMatched: true,
-            majorMatchReason: `ตรงกับสาขา ${applicant.major || 'ของคุณ'} ✨`,
-            aiAnalysis: `ผู้สมัครมีทักษะสอดคล้องกับตำแหน่ง ${job.title} โดยตรง มีพื้นฐานทักษะเฉพาะสายงาน เหมาะสำหรับการพิจารณานัดสัมภาษณ์`
-          }
-        });
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
-
-
-      const prompt = `
-    คุณคือ AI HR Specialist และระบบแมตช์งานอัจฉริยะภาษาไทย
-    โปรดประเมินความสอดคล้องระหว่างผู้สมัครงาน กับตำแหน่งงาน ดังนี้:
-
-    [ข้อมูลผู้สมัครงาน]
-    - ชื่อ: ${applicant.name || 'ผู้สมัคร'}
-    - สาขาวิชา: ${applicant.major || 'ไม่ได้ระบุ'}
-    - สถาบัน: ${applicant.university || 'ไม่ได้ระบุ'}
-    - ทักษะที่มี: ${Array.isArray(applicant.skills) ? applicant.skills.map(s => typeof s === 'string' ? s : s.name).join(', ') : 'ไม่ได้ระบุ'}
-    - ประวัติ/Bio: ${applicant.bio || ''}
-
-    [ข้อมูลตำแหน่งงาน]
-    - ชื่อตำแหน่ง: ${job.title}
-    - บริษัท: ${job.company}
-    - ทักษะที่ต้องการ: ${Array.isArray(job.skillsRequired) ? job.skillsRequired.join(', ') : job.skillsRequired || ''}
-    - หน้าที่รับผิดชอบ: ${job.description || ''}
-
-    โปรดวิเคราะห์ความเข้ากันได้ รวมถึงวิเคราะห์สายงานที่เหมาะสมที่สุดสำหรับผู้สมัครรายนี้ และตอบกลับเป็น JSON รูปแบบนี้เท่านั้น (ห้ามใส่ Markdown code block หรือตัวอักษรอื่นนอกเหนือจาก JSON):
-    {
-      "matchRate": 88,
-      "isMajorMatched": true,
-      "majorMatchReason": "ตรงกับสาขาของคุณ ✨",
-      "suggestedCareerPath": "ระบุสายงานที่เหมาะกับผู้สมัครมากที่สุด (เช่น Web Development, Data Science, UX/UI Design ฯลฯ)",
-      "aiAnalysis": "เขียนบทวิเคราะห์ภาษาไทยเชิงลึก 2-3 ประโยค สรุปจุดแข็ง สายนงานที่เหมาะ และทักษะที่ควรพัฒนาต่อ"
+// ----------------------------------------------------
+// GOOGLE GEMINI REAL-TIME AI MATCHING API (HIGH-PRECISION FEW-SHOT LEARNED ENGINE)
+// ----------------------------------------------------
+app.post('/api/ai/match', async (req, res) => {
+  try {
+    const { job, applicant } = req.body;
+    if (!job || !applicant) {
+      return res.status(400).json({ success: false, error: 'Missing job or applicant payload' });
     }
-    `;
 
+    const apiKey = process.env.GEMINI_API_KEY || GEMINI_API_KEY || req.headers['x-gemini-key'];
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
+    // Pre-calculate baseline using internal AI Engine as strong anchor & fallback
+    const localBaseline = calculateAIMatchRate(job, applicant);
 
-      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
-
-      console.log(`🤖 Gemini AI Analyzed Match Rate: ${parsed.matchRate}% for ${applicant.name} on ${job.title}`);
-
+    if (!apiKey) {
       return res.json({
         success: true,
-        source: 'google_gemini_api',
-        analysis: parsed
-      });
-
-    } catch (err) {
-      console.error('Error calling Gemini API:', err);
-      return res.json({
-        success: true,
-        source: 'fallback_ai',
+        source: 'embedded_ai',
         analysis: {
-          matchRate: 85,
-          isMajorMatched: true,
-          majorMatchReason: 'ตรงกับสายงานของคุณ ✨',
-          aiAnalysis: 'ระบบได้ประเมินความเหมาะสมเบื้องต้น พบว่ามีทักษะและพื้นฐานการศึกษาที่สอดคล้องกับตำแหน่งงาน'
+          matchRate: localBaseline.matchRate,
+          isMajorMatched: localBaseline.isMajorMatched,
+          majorMatchReason: localBaseline.majorMatchReason,
+          matchedSkills: localBaseline.matchedSkills,
+          missingSkills: localBaseline.missingSkills,
+          suggestedCareerPath: localBaseline.recommendedCareerPaths?.[0] || 'สายงานเทคโนโลยีสารสนเทศ',
+          aiAnalysis: `วิเคราะห์จากเกณฑ์คะแนนทักษะ ${localBaseline.skillScore}% และความสอดคล้องของสาขาวิชา ${localBaseline.majorScore}%: ผู้สมัครมีทักษะสอดคล้องกับตำแหน่ง ${job.title} เป็นอย่างดี`
         }
       });
     }
-  });
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-3.6-flash',
+      generationConfig: { responseMimeType: 'application/json' }
+    });
+
+    // Format applicant project history for deep portfolio verification
+    const projectSummary = Array.isArray(applicant.projects) && applicant.projects.length > 0
+      ? applicant.projects.map(p => `- ${p.title || 'ผลงาน'}: ${p.description || ''} (เทคโนโลยี/แท็ก: ${Array.isArray(p.tags) ? p.tags.join(', ') : p.tags || 'ทั่วไป'})`).join('\n')
+      : 'ไม่มีข้อมูลผลงานโปรเจกต์เพิ่มเติม';
+
+    const requiredSkillsStr = Array.isArray(job.skillsRequired)
+      ? job.skillsRequired.join(', ')
+      : (typeof job.skillsRequired === 'string' ? job.skillsRequired : 'ทักษะทั่วไป');
+
+    const applicantSkillsStr = Array.isArray(applicant.skills)
+      ? applicant.skills.map(s => typeof s === 'string' ? s : s.name).join(', ')
+      : (applicant.skills || 'ไม่ได้ระบุ');
+
+    const prompt = `
+คุณคือระบบ AI Senior HR Specialist และระบบจับคู่งานอัจฉริยะ (High-Precision Candidate Matching Engine)
+
+[เกณฑ์มาตรฐานการเรียนรู้ของระบบ (Calibrated Benchmark Learning)]:
+1. การคำนวณเปอร์เซ็นต์ความเข้ากันได้ (Match Rate 0-100%):
+   - ทักษะหลักเฉพาะทางตรงตามตำแหน่ง (Skills Match): น้ำหนัก 60%
+   - ความสอดคล้องของสาขาวิชาและวุฒิการศึกษา (Major & Degree Relevance): น้ำหนัก 25% (ตรงสาย = 25, ใกล้เคียง = 15-20, ต่างสายงาน = 0-5)
+   - ผลงาน/โปรเจกต์และประสบการณ์จริงในพอร์ตโฟลิโอ (Portfolio Proof): น้ำหนัก 15%
+2. กรณีตัวอย่างอ้างอิงที่ได้เรียนรู้:
+   - กรณีตรงสายงานและมีทักษะครบ (เช่น จบวิทยาการคอมพิวเตอร์ มี React + Tailwind สมัคร Frontend): คะแนนช่วง 90-96%
+   - กรณีสาขาใกล้เคียงและมีทักษะตรง (เช่น จบมัลติมีเดีย มี Figma สมัคร UI/UX Designer): คะแนนช่วง 85-92%
+   - กรณีตรงสายแต่ขาดทักษะหลักบางส่วน (เช่น จบวิศวกรรมซอฟต์แวร์ สมัคร Full Stack มี Frontend แต่ขาด Backend Node/SQL): คะแนนช่วง 70-80% พร้อมระบุ missingSkills ชัดเจน
+   - กรณีต่างสายงานโดยสิ้นเชิงและไม่มีทักษะตรง (เช่น จบเครื่องกล สมัครเขียนเว็บ Frontend): คะแนนช่วง 15-35%
+
+[ข้อมูลตำแหน่งงานที่ต้องการประเมิน]
+- ชื่อตำแหน่ง: ${job.title}
+- บริษัท: ${job.company}
+- ทักษะที่ต้องการ: ${requiredSkillsStr}
+- รายละเอียดงาน: ${job.description || ''}
+
+[ข้อมูลผู้สมัครงาน]
+- ชื่อ: ${applicant.name || 'ผู้สมัคร'}
+- สาขาวิชา: ${applicant.major || 'ไม่ได้ระบุ'}
+- สถาบัน: ${applicant.university || 'ไม่ได้ระบุ'}
+- ทักษะที่มี: ${applicantSkillsStr}
+- ประวัติส่วนตัว/Bio: ${applicant.bio || ''}
+- ผลงานและโปรเจกต์:
+${projectSummary}
+
+โปรดวิเคราะห์อย่างละเอียดโดยไม่อิงตัวเลขคงที่ ประเมินเปอร์เซ็นต์อย่างเที่ยงตรง และตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:
+{
+  "matchRate": 85,
+  "isMajorMatched": true,
+  "majorMatchReason": "ตรงกับสาขาวิชาของคุณ ✨",
+  "matchedSkills": ["ทักษะที่ตรงกับงาน"],
+  "missingSkills": ["ทักษะที่งานต้องการแต่ผู้สมัครยังไม่มี"],
+  "suggestedCareerPath": "สายงานที่เหมาะสมที่สุดสำหรับผู้สมัคร (เช่น Web & Software Development, UI/UX Design, Data & Analytics ฯลฯ)",
+  "aiAnalysis": "เขียนบทวิเคราะห์ภาษาไทยเชิงลึก 2-3 ประโยค สรุปจุดแข็ง จุดเด่นของผลงาน ทักษะที่ตรง และสิ่งที่ควรศึกษาเพิ่มเติม"
+}
+`;
+
+    // Attempt calling Gemini with exponential backoff retry (up to 3 attempts)
+    let parsedResult = null;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsedResult = JSON.parse(cleanJson);
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ Gemini API call attempt ${attempt} failed: ${err.message || err.status}`);
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+        }
+      }
+    }
+
+    if (parsedResult) {
+      console.log(`🤖 Gemini AI Evaluated: ${parsedResult.matchRate}% for ${applicant.name} on "${job.title}"`);
+      return res.json({
+        success: true,
+        source: 'google_gemini_api',
+        analysis: parsedResult
+      });
+    }
+
+    // Fallback if all Gemini attempts failed
+    console.error('All Gemini attempts failed, using Smart AI Fallback:', lastError?.message);
+    return res.json({
+      success: true,
+      source: 'smart_fallback_ai',
+      analysis: {
+        matchRate: localBaseline.matchRate,
+        isMajorMatched: localBaseline.isMajorMatched,
+        majorMatchReason: localBaseline.majorMatchReason,
+        matchedSkills: localBaseline.matchedSkills,
+        missingSkills: localBaseline.missingSkills,
+        suggestedCareerPath: localBaseline.recommendedCareerPaths?.[0] || 'สายงานเทคโนโลยีสารสนเทศ',
+        aiAnalysis: `วิเคราะห์จากฐานข้อมูลทักษะ: ผู้สมัครมีทักษะตรงกับความต้องการของตำแหน่ง ${job.title} คิดเป็นคะแนนทักษะ ${localBaseline.skillScore}% โดยสาขาวิชาสอดคล้องกับเนื้องาน เหมาะสำหรับการนัดสัมภาษณ์เบื้องต้น`
+      }
+    });
+
+  } catch (err) {
+    console.error('Fatal error in /api/ai/match:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
   app.listen(PORT, () => {
     console.log(`🚀 Production-Ready REST API & Shared Database Server running on http://localhost:${PORT}`);
