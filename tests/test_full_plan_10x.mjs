@@ -798,13 +798,16 @@ async function runFullSuite10x() {
   XLSX.utils.book_append_sheet(wb, wsAdded, 'Added Web Features');
   XLSX.utils.book_append_sheet(wb, wsLogs, '310 Runs Detailed Log');
 
-  const excelPath = path.resolve('d:/Project/job-matching/VV_Test_Cases_FreshGrad_Jobs.xlsx');
+  const reportDir = path.resolve('d:/Project/job-matching/ไฟล์รายงาน');
+  if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir, { recursive: true });
+
+  const excelPath = path.join(reportDir, 'VV_Test_Cases_FreshGrad_Jobs.xlsx');
   XLSX.writeFile(wb, excelPath);
   console.log(`✅ Saved complete test suite to Excel: ${excelPath}`);
 
   // Write UTF-8 BOM CSV
   const csvContent = XLSX.utils.sheet_to_csv(wsAll);
-  const csvPath = path.resolve('d:/Project/job-matching/VV_Test_Cases_FreshGrad_Jobs.csv');
+  const csvPath = path.join(reportDir, 'VV_Test_Cases_FreshGrad_Jobs.csv');
   fs.writeFileSync(csvPath, '\uFEFF' + csvContent, 'utf-8');
   console.log(`✅ Saved complete test suite to CSV with UTF-8 BOM: ${csvPath}\n`);
 }
