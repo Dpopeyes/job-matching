@@ -493,12 +493,24 @@ app.get('/api/users/:userId/portfolio', (req, res) => {
 // PUT Update User Details in SQLite DB
 app.put('/api/users/:userId', (req, res) => {
   try {
-    const { name, university, major, phone, bio, avatar } = req.body;
+    const existing = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
+    if (!existing) {
+      return res.status(404).json({ error: 'ไม่พบผู้ใช้' });
+    }
+    const { 
+      name = existing.name, 
+      university = existing.university, 
+      major = existing.major, 
+      phone = existing.phone, 
+      bio = existing.bio, 
+      avatar = existing.avatar 
+    } = req.body;
+
     db.prepare(`
       UPDATE users 
       SET name = ?, university = ?, major = ?, phone = ?, bio = ?, avatar = ?
       WHERE id = ?
-    `).run(name, university, major, phone, bio, avatar, req.params.userId);
+    `).run(name ?? '', university ?? '', major ?? '', phone ?? '', bio ?? '', avatar ?? '', req.params.userId);
 
     const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
     console.log(`👤 Updated user profile: ${name} (${req.params.userId})`);
